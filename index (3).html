@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cupids - チャット占い</title>
+  
+  <!-- PWA設定 -->
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#ec4899">
+  <meta name="description" content="月に代わってあなたの恋を応援します♡">
+  
+  <!-- Apple用アイコン -->
+  <link rel="apple-touch-icon" href="./cupids_icon_192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Cupids">
+  
+  <!-- Androidアイコン -->
+  <link rel="icon" type="image/png" sizes="192x192" href="./cupids_icon_192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="./cupids_icon_512.png">
+  
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+        'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+        sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    * {
+      box-sizing: border-box;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  
+  <!-- React & ReactDOM & Babel -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    // Firebase設定
+    const firebaseConfig = {
+      apiKey: "AIzaSyA52uJ31HzLkbz32lA-3WWSmhM10xYjjCg",
+      authDomain: "cupids-chat.firebaseapp.com",
+      projectId: "cupids-chat",
+      storageBucket: "cupids-chat.firebasestorage.app",
+      messagingSenderId: "44532110483",
+      appId: "1:44532110483:web:d6266e8abba8582b8b6966"
+    };
+
+    // Firebase初期化
+    firebase.initializeApp(firebaseConfig);
+
+    function CupidsApp() {
+      const [currentUser, setCurrentUser] = useState(null);
+      const [screen, setScreen] = useState('login');
+      const [email, setEmail] = useState('');
+      const [password, setPassword] = useState('');
+      const [loading, setLoading] = useState(true);
+      const [name, setName] = useState('');
+      const [userType, setUserType] = useState('client');
+
+      // 認証状態の監視
+      useEffect(() => {
+        const unsubscribe = firebase.auth().onAuthStateChanged((user) => {
+          if (user) {
+            firebase.firestore().collection('users').doc(user.uid).get()
+              .then((doc) => {
+                if (doc.exists) {
+                  setCurrentUser({
+                    id: user.uid,
+                    email: user.email,
+                    ...doc.data()
+                  });
+                  setScreen('lobby');
+                }
+                setLoading(false);
+              });
+          } else {
+            setLoading(false);
+          }
+        });
+
+        return () => unsubscribe();
+      }, []);
+
+      // ログイン
+      const handleLogin = async () => {
+        try {
+          setLoading(true);
+          await firebase.auth().signInWithEmailAndPassword(email, password);
+        } catch (error) {
+          alert('ログインに失敗しました: ' + error.message);
+          setLoading(false);
+        }
+      };
+
+      // 新規登録
+      const handleRegister = async () => {
+        if (!name || !email || !password) {
+          alert('全ての項目を入力してください');
+          return;
+        }
+        
+        try {
+          setLoading(true);
+          const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
+          
+          await firebase.firestore().collection('users').doc(userCredential.user.uid).set({
+            name: name,
+            email: email,
+            type: userType,
+            points: userType === 'client' ? 500 : 0,
+            createdAt: new Date().toISOString()
+          });
+        } catch (error) {
+          alert('登録に失敗しました: ' + error.message);
+          setLoading(false);
+        }
+      };
+
+      // ログアウト
+      const handleLogout = async () => {
+        await firebase.auth().signOut();
+        setCurrentUser(null);
+        setScreen('login');
+      };
+
+      if (loading) {
+        return (
+          <div style={{
+            minHeight: '100vh',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'linear-gradient(to right, #ec4899, #a855f7)'
+          }}>
+            <div style={{ color: 'white', fontSize: '20px' }}>読み込み中...</div>
+          </div>
+        );
+      }
+
+      // ログイン画面
+      if (screen === 'login') {
+        return (
+          <div style={{ 
+            minHeight: '100vh', 
+            background: '#f9fafb', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            padding: '16px' 
+          }}>
+            <div style={{ 
+              maxWidth: '400px', 
+              width: '100%', 
+              background: 'white', 
+              borderRadius: '12px', 
+              padding: '32px', 
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)' 
+            }}>
+              <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+                <div style={{ fontSize: '48px', marginBottom: '8px' }}>🌙💕</div>
+                <h1 style={{ 
+                  fontSize: '32px', 
+                  fontWeight: 'bold', 
+                  background: 'linear-gradient(to right, #ec4899, #a855f7)', 
+                  WebkitBackgroundClip: 'text', 
+                  WebkitTextFillColor: 'transparent', 
+                  marginBottom: '8px' 
+                }}>
+                  Cupids
+                </h1>
+                <p style={{ fontSize: '13px', color: '#ec4899', fontWeight: 'bold' }}>
+                  月に代わってあなたの恋を応援します♡
+                </p>
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                  メールアドレス
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '14px'
+                  }}
+                  placeholder="your@email.com"
+                />
+              </div>
+
+              <div style={{ marginBottom: '24px' }}>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                  パスワード
+                </label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '14px'
+                  }}
+                  placeholder="••••••••"
+                />
+              </div>
+
+              <button
+                onClick={handleLogin}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  background: 'linear-gradient(to right, #ec4899, #a855f7)',
+                  color: 'white',
+                  borderRadius: '8px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  marginBottom: '16px'
+                }}
+              >
+                ログイン
+              </button>
+
+              <div style={{ textAlign: 'center', fontSize: '14px', color: '#6b7280' }}>
+                アカウントをお持ちでない方は
+                <button
+                  onClick={() => setScreen('register')}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#ec4899',
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                    marginLeft: '4px'
+                  }}
+                >
+                  新規登録
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      // 新規登録画面
+      if (screen === 'register') {
+        return (
+          <div style={{ 
+            minHeight: '100vh', 
+            background: '#f9fafb', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            padding: '16px' 
+          }}>
+            <div style={{ 
+              maxWidth: '400px', 
+              width: '100%', 
+              background: 'white', 
+              borderRadius: '12px', 
+              padding: '32px', 
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)' 
+            }}>
+              <div style={{ marginBottom: '24px' }}>
+                <button
+                  onClick={() => setScreen('login')}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#6b7280',
+                    cursor: 'pointer',
+                    fontSize: '14px'
+                  }}
+                >
+                  ← ログインに戻る
+                </button>
+              </div>
+
+              <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1f2937', marginBottom: '24px' }}>
+                新規登録
+              </h2>
+
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                  お名前
+                </label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '14px'
+                  }}
+                  placeholder="山田太郎"
+                />
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                  メールアドレス
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '14px'
+                  }}
+                  placeholder="your@email.com"
+                />
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                  パスワード
+                </label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '14px'
+                  }}
+                  placeholder="6文字以上"
+                />
+              </div>
+
+              <div style={{ marginBottom: '24px' }}>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                  利用タイプ
+                </label>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <button
+                    onClick={() => setUserType('client')}
+                    style={{
+                      flex: 1,
+                      padding: '12px',
+                      border: `2px solid ${userType === 'client' ? '#ec4899' : '#d1d5db'}`,
+                      borderRadius: '8px',
+                      background: userType === 'client' ? '#fdf2f8' : 'white',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: userType === 'client' ? '#ec4899' : '#6b7280'
+                    }}
+                  >
+                    👤 お客様
+                  </button>
+                  <button
+                    onClick={() => setUserType('fortune-teller')}
+                    style={{
+                      flex: 1,
+                      padding: '12px',
+                      border: `2px solid ${userType === 'fortune-teller' ? '#a855f7' : '#d1d5db'}`,
+                      borderRadius: '8px',
+                      background: userType === 'fortune-teller' ? '#faf5ff' : 'white',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: userType === 'fortune-teller' ? '#a855f7' : '#6b7280'
+                    }}
+                  >
+                    🔮 占い師
+                  </button>
+                </div>
+              </div>
+
+              <button
+                onClick={handleRegister}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  background: 'linear-gradient(to right, #ec4899, #a855f7)',
+                  color: 'white',
+                  borderRadius: '8px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '16px',
+                  fontWeight: '600'
+                }}
+              >
+                登録する
+              </button>
+            </div>
+          </div>
+        );
+      }
+
+      // ロビー画面
+      return (
+        <div style={{ minHeight: '100vh', background: '#f9fafb' }}>
+          <div style={{
+            background: 'linear-gradient(to right, #ec4899, #a855f7)',
+            padding: '16px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+          }}>
+            <div style={{
+              maxWidth: '1200px',
+              margin: '0 auto',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <div>
+                <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: 'white', marginBottom: '4px' }}>
+                  Cupids
+                </h1>
+                <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.9)' }}>
+                  {currentUser?.name}さん
+                </p>
+              </div>
+              <button
+                onClick={handleLogout}
+                style={{
+                  background: 'rgba(255,255,255,0.2)',
+                  color: 'white',
+                  padding: '8px 16px',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(255,255,255,0.3)',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}
+              >
+                ログアウト
+              </button>
+            </div>
+          </div>
+
+          <div style={{
+            maxWidth: '1200px',
+            margin: '0 auto',
+            padding: '32px 16px',
+            textAlign: 'center'
+          }}>
+            <div style={{
+              background: 'white',
+              borderRadius: '12px',
+              padding: '48px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+            }}>
+              <div style={{ fontSize: '64px', marginBottom: '16px' }}>🎉</div>
+              <h2 style={{ fontSize: '32px', fontWeight: 'bold', color: '#1f2937', marginBottom: '16px' }}>
+                Firebase連携成功！
+              </h2>
+              <p style={{ fontSize: '16px', color: '#6b7280', marginBottom: '8px' }}>
+                ログイン機能が正常に動作しています
+              </p>
+              <p style={{ fontSize: '14px', color: '#9ca3af' }}>
+                ユーザーID: {currentUser?.id}
+              </p>
+              <p style={{ fontSize: '14px', color: '#9ca3af' }}>
+                タイプ: {currentUser?.type === 'client' ? 'お客様' : '占い師'}
+              </p>
+              {currentUser?.type === 'client' && (
+                <p style={{ fontSize: '14px', color: '#ec4899', fontWeight: 'bold', marginTop: '8px' }}>
+                  所持ポイント: {currentUser?.points}pt
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<CupidsApp />);
+  </script>
+</body>
+</html>
