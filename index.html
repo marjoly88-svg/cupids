@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cupids - チャット占い</title>
+  
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#ec4899">
+  <link rel="apple-touch-icon" href="./cupids_icon_192.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="./cupids_icon_192.png">
+  
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  
+  <style>
+    body { margin: 0; padding: 0; font-family: -apple-system, sans-serif; }
+    * { box-sizing: border-box; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyA52uJ31HzLkbz32lA-3WWSmhM10xYjjCg",
+      authDomain: "cupids-chat.firebaseapp.com",
+      projectId: "cupids-chat",
+      storageBucket: "cupids-chat.firebasestorage.app",
+      messagingSenderId: "44532110483",
+      appId: "1:44532110483:web:d6266e8abba8582b8b6966"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    function CupidsApp() {
+      const [currentUser, setCurrentUser] = useState(null);
+      const [screen, setScreen] = useState('login');
+      const [email, setEmail] = useState('');
+      const [password, setPassword] = useState('');
+      const [loading, setLoading] = useState(true);
+      const [name, setName] = useState('');
+      const [userType, setUserType] = useState('client');
+      const [fortuneTellers, setFortuneTellers] = useState([]);
+      const [selectedFortuneTeller, setSelectedFortuneTeller] = useState(null);
+      const [messages, setMessages] = useState([]);
+      const [messageText, setMessageText] = useState('');
+      const messagesEndRef = useRef(null);
+
+      useEffect(() => {
+        const unsubscribe = auth.onAuthStateChanged((user) => {
+          if (user) {
+            db.collection('users').doc(user.uid).get()
+              .then((doc) => {
+                if (doc.exists) {
+                  setCurrentUser({
+                    id: user.uid,
+                    email: user.email,
+                    ...doc.data()
+                  });
+                  setScreen('lobby');
+                }
+                setLoading(false);
+              });
+          } else {
+            setLoading(false);
+          }
+        });
+        return () => unsubscribe();
+      }, []);
+
+      useEffect(() => {
+        if (currentUser?.type === 'client') {
+          const unsubscribe = db.collection('users')
+            .where('type', '==', 'fortune-teller')
+            .onSnapshot((snapshot) => {
+              const fts = [];
+              snapshot.forEach((doc) => {
+                fts.push({ id: doc.id, ...doc.data() });
+              });
+              setFortuneTellers(fts);
+            });
+          return () => unsubscribe();
+        }
+      }, [currentUser]);
+
+      useEffect(() => {
+        if (selectedFortuneTeller && currentUser) {
+          const chatId = [currentUser.id, selectedFortuneTeller.id].sort().join('_');
+          const unsubscribe = db.collection('chats').doc(chatId)
+            .collection('messages')
+            .orderBy('timestamp', 'asc')
+            .onSnapshot((snapshot) => {
+              const msgs = [];
+              snapshot.forEach((doc) => {
+                msgs.push({ id: doc.id, ...doc.data() });
+              });
+              setMessages(msgs);
+              setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+            });
+          return () => unsubscribe();
+        }
+      }, [selectedFortuneTeller, currentUser]);
+
+      const handleLogin = async () => {
+        try {
+          setLoading(true);
+          await auth.signInWithEmailAndPassword(email, password);
+        } catch (error) {
+          alert('ログイン失敗: ' + error.message);
+          setLoading(false);
+        }
+      };
+
+      const handleRegister = async () => {
+        if (!name || !email || !password) {
+          alert('全て入力してください');
+          return;
+        }
+        try {
+          setLoading(true);
+          const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+          await db.collection('users').doc(userCredential.user.uid).set({
+            name: name,
+            email: email,
+            type: userType,
+            points: userType === 'client' ? 500 : 0,
+            createdAt: new Date().toISOString()
+          });
+        } catch (error) {
+          alert('登録失敗: ' + error.message);
+          setLoading(false);
+        }
+      };
+
+      const handleLogout = async () => {
+        await auth.signOut();
+        setCurrentUser(null);
+        setScreen('login');
+      };
+
+      const sendMessage = async () => {
+        if (!messageText.trim() || !selectedFortuneTeller) return;
+        
+        const chatId = [currentUser.id, selectedFortuneTeller.id].sort().join('_');
+        
+        try {
+          await db.collection('chats').doc(chatId).collection('messages').add({
+            text: messageText,
+            senderId: currentUser.id,
+            senderName: currentUser.name,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+            createdAt: new Date().toISOString()
+          });
+          setMessageText('');
+        } catch (error) {
+          alert('送信失敗: ' + error.message);
+        }
+      };
+
+      if (loading) {
+        return (
+          <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'linear-gradient(to right, #ec4899, #a855f7)'}}>
+            <div style={{color:'white',fontSize:'20px'}}>読み込み中...</div>
+          </div>
+        );
+      }
+
+      if (screen === 'login') {
+        return (
+          <div style={{minHeight:'100vh',background:'#f9fafb',display:'flex',alignItems:'center',justifyContent:'center',padding:'16px'}}>
+            <div style={{maxWidth:'400px',width:'100%',background:'white',borderRadius:'12px',padding:'32px',boxShadow:'0 4px 12px rgba(0,0,0,0.1)'}}>
+              <div style={{textAlign:'center',marginBottom:'32px'}}>
+                <div style={{fontSize:'48px',marginBottom:'8px'}}>🌙💕</div>
+                <h1 style={{fontSize:'32px',fontWeight:'bold',background:'linear-gradient(to right, #ec4899, #a855f7)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',marginBottom:'8px'}}>Cupids</h1>
+                <p style={{fontSize:'13px',color:'#ec4899',fontWeight:'bold'}}>月に代わってあなたの恋を応援します♡</p>
+              </div>
+              <div style={{marginBottom:'16px'}}>
+                <label style={{display:'block',fontSize:'14px',fontWeight:'500',color:'#374151',marginBottom:'8px'}}>メールアドレス</label>
+                <input type="email" value={email} onChange={(e)=>setEmail(e.target.value)} style={{width:'100%',padding:'12px 16px',border:'1px solid #d1d5db',borderRadius:'8px',fontSize:'14px'}} placeholder="your@email.com"/>
+              </div>
+              <div style={{marginBottom:'24px'}}>
+                <label style={{display:'block',fontSize:'14px',fontWeight:'500',color:'#374151',marginBottom:'8px'}}>パスワード</label>
+                <input type="password" value={password} onChange={(e)=>setPassword(e.target.value)} onKeyPress={(e)=>e.key==='Enter'&&handleLogin()} style={{width:'100%',padding:'12px 16px',border:'1px solid #d1d5db',borderRadius:'8px',fontSize:'14px'}} placeholder="••••••••"/>
+              </div>
+              <button onClick={handleLogin} style={{width:'100%',padding:'12px',background:'linear-gradient(to right, #ec4899, #a855f7)',color:'white',borderRadius:'8px',border:'none',cursor:'pointer',fontSize:'16px',fontWeight:'600',marginBottom:'16px'}}>ログイン</button>
+              <div style={{textAlign:'center',fontSize:'14px',color:'#6b7280'}}>
+                アカウントをお持ちでない方は
+                <button onClick={()=>setScreen('register')} style={{background:'none',border:'none',color:'#ec4899',cursor:'pointer',textDecoration:'underline',marginLeft:'4px'}}>新規登録</button>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      if (screen === 'register') {
+        return (
+          <div style={{minHeight:'100vh',background:'#f9fafb',display:'flex',alignItems:'center',justifyContent:'center',padding:'16px'}}>
+            <div style={{maxWidth:'400px',width:'100%',background:'white',borderRadius:'12px',padding:'32px',boxShadow:'0 4px 12px rgba(0,0,0,0.1)'}}>
+              <div style={{marginBottom:'24px'}}>
+                <button onClick={()=>setScreen('login')} style={{background:'none',border:'none',color:'#6b7280',cursor:'pointer',fontSize:'14px'}}>← ログインに戻る</button>
+              </div>
+              <h2 style={{fontSize:'24px',fontWeight:'bold',color:'#1f2937',marginBottom:'24px'}}>新規登録</h2>
+              <div style={{marginBottom:'16px'}}>
+                <label style={{display:'block',fontSize:'14px',fontWeight:'500',color:'#374151',marginBottom:'8px'}}>お名前</label>
+                <input type="text" value={name} onChange={(e)=>setName(e.target.value)} style={{width:'100%',padding:'12px 16px',border:'1px solid #d1d5db',borderRadius:'8px',fontSize:'14px'}} placeholder="山田太郎"/>
+              </div>
+              <div style={{marginBottom:'16px'}}>
+                <label style={{display:'block',fontSize:'14px',fontWeight:'500',color:'#374151',marginBottom:'8px'}}>メールアドレス</label>
+                <input type="email" value={email} onChange={(e)=>setEmail(e.target.value)} style={{width:'100%',padding:'12px 16px',border:'1px solid #d1d5db',borderRadius:'8px',fontSize:'14px'}} placeholder="your@email.com"/>
+              </div>
+              <div style={{marginBottom:'16px'}}>
+                <label style={{display:'block',fontSize:'14px',fontWeight:'500',color:'#374151',marginBottom:'8px'}}>パスワード</label>
+                <input type="password" value={password} onChange={(e)=>setPassword(e.target.value)} style={{width:'100%',padding:'12px 16px',border:'1px solid #d1d5db',borderRadius:'8px',fontSize:'14px'}} placeholder="6文字以上"/>
+              </div>
+              <div style={{marginBottom:'24px'}}>
+                <label style={{display:'block',fontSize:'14px',fontWeight:'500',color:'#374151',marginBottom:'8px'}}>利用タイプ</label>
+                <div style={{display:'flex',gap:'12px'}}>
+                  <button onClick={()=>setUserType('client')} style={{flex:1,padding:'12px',border:`2px solid ${userType==='client'?'#ec4899':'#d1d5db'}`,borderRadius:'8px',background:userType==='client'?'#fdf2f8':'white',cursor:'pointer',fontSize:'14px',fontWeight:'600',color:userType==='client'?'#ec4899':'#6b7280'}}>👤 お客様</button>
+                  <button onClick={()=>setUserType('fortune-teller')} style={{flex:1,padding:'12px',border:`2px solid ${userType==='fortune-teller'?'#a855f7':'#d1d5db'}`,borderRadius:'8px',background:userType==='fortune-teller'?'#faf5ff':'white',cursor:'pointer',fontSize:'14px',fontWeight:'600',color:userType==='fortune-teller'?'#a855f7':'#6b7280'}}>🔮 占い師</button>
+                </div>
+              </div>
+              <button onClick={handleRegister} style={{width:'100%',padding:'12px',background:'linear-gradient(to right, #ec4899, #a855f7)',color:'white',borderRadius:'8px',border:'none',cursor:'pointer',fontSize:'16px',fontWeight:'600'}}>登録する</button>
+            </div>
+          </div>
+        );
+      }
+
+      if (screen === 'chat' && selectedFortuneTeller) {
+        return (
+          <div style={{minHeight:'100vh',background:'#f9fafb',display:'flex',flexDirection:'column'}}>
+            <div style={{background:'linear-gradient(to right, #ec4899, #a855f7)',padding:'16px',boxShadow:'0 2px 8px rgba(0,0,0,0.1)'}}>
+              <div style={{maxWidth:'800px',margin:'0 auto',display:'flex',alignItems:'center',gap:'12px'}}>
+                <button onClick={()=>{setScreen('lobby');setSelectedFortuneTeller(null);}} style={{background:'rgba(255,255,255,0.2)',color:'white',padding:'8px',borderRadius:'8px',border:'1px solid rgba(255,255,255,0.3)',cursor:'pointer'}}>
+                  ←
+                </button>
+                <div style={{flex:1}}>
+                  <h2 style={{fontSize:'18px',fontWeight:'bold',color:'white',marginBottom:'4px'}}>{selectedFortuneTeller.name}</h2>
+                  <p style={{fontSize:'12px',color:'rgba(255,255,255,0.9)'}}>占い師</p>
+                </div>
+              </div>
+            </div>
+            <div style={{flex:1,overflowY:'auto',padding:'16px',maxWidth:'800px',width:'100%',margin:'0 auto'}}>
+              {messages.map((msg)=>(
+                <div key={msg.id} style={{marginBottom:'16px',display:'flex',justifyContent:msg.senderId===currentUser.id?'flex-end':'flex-start'}}>
+                  <div style={{maxWidth:'70%',background:msg.senderId===currentUser.id?'#ec4899':'white',color:msg.senderId===currentUser.id?'white':'#1f2937',padding:'12px 16px',borderRadius:'12px',boxShadow:'0 2px 4px rgba(0,0,0,0.1)'}}>
+                    <div style={{fontSize:'12px',marginBottom:'4px',opacity:0.8}}>{msg.senderName}</div>
+                    <div style={{fontSize:'14px'}}>{msg.text}</div>
+                  </div>
+                </div>
+              ))}
+              <div ref={messagesEndRef}/>
+            </div>
+            <div style={{background:'white',padding:'16px',borderTop:'1px solid #e5e7eb',maxWidth:'800px',width:'100%',margin:'0 auto'}}>
+              <div style={{display:'flex',gap:'12px'}}>
+                <input type="text" value={messageText} onChange={(e)=>setMessageText(e.target.value)} onKeyPress={(e)=>e.key==='Enter'&&sendMessage()} placeholder="メッセージを入力..." style={{flex:1,padding:'12px 16px',border:'1px solid #d1d5db',borderRadius:'8px',fontSize:'14px'}}/>
+                <button onClick={sendMessage} style={{padding:'12px 20px',background:'linear-gradient(to right, #ec4899, #a855f7)',color:'white',borderRadius:'8px',border:'none',cursor:'pointer'}}>
+                  送信
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div style={{minHeight:'100vh',background:'#f9fafb'}}>
+          <div style={{background:'linear-gradient(to right, #ec4899, #a855f7)',padding:'16px',boxShadow:'0 2px 8px rgba(0,0,0,0.1)'}}>
+            <div style={{maxWidth:'1200px',margin:'0 auto',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <div>
+                <h1 style={{fontSize:'24px',fontWeight:'bold',color:'white',marginBottom:'4px'}}>Cupids</h1>
+                <p style={{fontSize:'12px',color:'rgba(255,255,255,0.9)'}}>{currentUser?.name}さん{currentUser?.type==='client'&&` (${currentUser?.points}pt)`}</p>
+              </div>
+              <button onClick={handleLogout} style={{background:'rgba(255,255,255,0.2)',color:'white',padding:'8px 16px',borderRadius:'8px',border:'1px solid rgba(255,255,255,0.3)',cursor:'pointer',fontSize:'14px',fontWeight:'600'}}>ログアウト</button>
+            </div>
+          </div>
+          <div style={{maxWidth:'1200px',margin:'0 auto',padding:'32px 16px'}}>
+            {currentUser?.type==='client'?(
+              <div>
+                <h2 style={{fontSize:'24px',fontWeight:'bold',color:'#1f2937',marginBottom:'16px'}}>占い師一覧</h2>
+                {fortuneTellers.length===0?(
+                  <p style={{color:'#6b7280'}}>占い師が登録されていません</p>
+                ):(
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill, minmax(300px, 1fr))',gap:'16px'}}>
+                    {fortuneTellers.map((ft)=>(
+                      <div key={ft.id} style={{background:'white',borderRadius:'12px',padding:'20px',boxShadow:'0 2px 8px rgba(0,0,0,0.1)',cursor:'pointer'}} onClick={()=>{setSelectedFortuneTeller(ft);setScreen('chat');}}>
+                        <h3 style={{fontSize:'18px',fontWeight:'bold',color:'#1f2937',marginBottom:'8px'}}>{ft.name}</h3>
+                        <p style={{fontSize:'14px',color:'#6b7280',marginBottom:'12px'}}>占い師</p>
+                        <button style={{width:'100%',padding:'10px',background:'linear-gradient(to right, #ec4899, #a855f7)',color:'white',borderRadius:'8px',border:'none',cursor:'pointer',fontSize:'14px',fontWeight:'600'}}>
+                          💬 チャットを開始
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ):(
+              <div style={{textAlign:'center',padding:'48px'}}>
+                <div style={{fontSize:'64px',marginBottom:'16px'}}>🔮</div>
+                <h2 style={{fontSize:'24px',fontWeight:'bold',color:'#1f2937',marginBottom:'8px'}}>占い師モード</h2>
+                <p style={{fontSize:'16px',color:'#6b7280'}}>お客様からのメッセージをお待ちしています</p>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<CupidsApp />);
+  </script>
+</body>
+</html>
