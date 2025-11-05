@@ -1,0 +1,1297 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cupids - チャット占い</title>
+  
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#ec4899">
+  <link rel="apple-touch-icon" href="./cupids_icon_192.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="./cupids_icon_192.png">
+  
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  
+  <style>
+    body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    * { box-sizing: border-box; }
+    
+    /* スクロールバースタイル */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: #555; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    // Firebase初期化
+    const firebaseConfig = {
+      apiKey: "AIzaSyA52uJ31HzLkbz32lA-3WWSmhM10xYjjCg",
+      authDomain: "cupids-chat.firebaseapp.com",
+      projectId: "cupids-chat",
+      storageBucket: "cupids-chat.firebasestorage.app",
+      messagingSenderId: "44532110483",
+      appId: "1:44532110483:web:d6266e8abba8582b8b6966"
+    };
+    
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    // アイコンコンポーネント
+    const Icons = {
+      Send: ({ size = 24, color = 'currentColor' }) => (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"></line>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+        </svg>
+      ),
+      User: ({ size = 24, color = 'currentColor' }) => (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+          <circle cx="12" cy="7" r="4"></circle>
+        </svg>
+      ),
+      LogOut: ({ size = 24, color = 'currentColor' }) => (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+          <polyline points="16 17 21 12 16 7"></polyline>
+          <line x1="21" y1="12" x2="9" y2="12"></line>
+        </svg>
+      ),
+      Star: ({ size = 24, color = 'currentColor', fill = 'none' }) => (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+        </svg>
+      ),
+      Moon: ({ size = 24, color = 'currentColor' }) => (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+      ),
+      FileText: ({ size = 24, color = 'currentColor' }) => (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="16" y1="13" x2="8" y2="13"></line>
+          <line x1="16" y1="17" x2="8" y2="17"></line>
+          <polyline points="10 9 9 9 8 9"></polyline>
+        </svg>
+      ),
+      Edit2: ({ size = 24, color = 'currentColor' }) => (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+        </svg>
+      ),
+      Mail: ({ size = 24, color = 'currentColor' }) => (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+          <polyline points="22,6 12,13 2,6"></polyline>
+        </svg>
+      ),
+      ArrowLeft: ({ size = 24, color = 'currentColor' }) => (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+      ),
+      DollarSign: ({ size = 24, color = 'currentColor' }) => (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="12" y1="1" x2="12" y2="23"></line>
+          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+        </svg>
+      ),
+      Plus: ({ size = 24, color = 'currentColor' }) => (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+      ),
+      X: ({ size = 24, color = 'currentColor' }) => (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      )
+    };
+
+    // Cupidsロゴ
+    const CupidsLogo = () => (
+      <img 
+        src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAwIiBoZWlnaHQ9IjE4MCIgdmlld0JveD0iMCAwIDUwMCAxODAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InRleHRHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNlYzQ4OTk7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6I2E4NTVmNztzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8ZmlsdGVyIGlkPSJzb2Z0U2hhZG93Ij4KICAgICAgPGZlRHJvcFNoYWRvdyBkeD0iMCIgZHk9IjMiIHN0ZERldmlhdGlvbj0iMyIgZmxvb2QtY29sb3I9IiMwMDAwMDAiIGZsb29kLW9wYWNpdHk9IjAuMjUiLz4KICAgIDwvZmlsdGVyPgogIDwvZGVmcz4KICAKICA8IS0tIOWPr+aEm+OBhOaciO+8iOODnuODoeODreODs+miqO+8iSAtLT4KICA8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg3MCwgNjApIiBmaWx0ZXI9InVybCgjc29mdFNoYWRvdykiPgogICAgPCEtLSDmnIjmnKzkvZMgLS0+CiAgICA8cGF0aCBkPSJNIDAsMCBBIDM4LDM4IDAgMSwwIDIyLC0yMiBBIDI4LDI4IDAgMSwxIDAsMCBaIiBmaWxsPSIjZmVmM2M3Ii8+CiAgICA8IS0tIOaYn+OBrumjvuOCiiAtLT4KICAgIDxjaXJjbGUgY3g9IjEzIiBjeT0iLTEzIiByPSIzIiBmaWxsPSIjZmJiZjI0Ii8+CiAgICA8cGF0aCBkPSJNIDEzLC0xNiBMIDEzLjUsLTEzLjUgTCAxNiwtMTMgTCAxMy41LC0xMi41IEwgMTMsLTEwIEwgMTIuNSwtMTIuNSBMIDEwLC0xMyBMIDEyLjUsLTEzLjUgWiIgZmlsbD0iI2ZiYmYyNCIvPgogICAgPCEtLSDlsI/jgZXjgarmmJ8gLS0+CiAgICA8Y2lyY2xlIGN4PSItMTAiIGN5PSItMTAiIHI9IjIiIGZpbGw9IiNmYmJmMjQiIG9wYWNpdHk9IjAuOCIvPgogIDwvZz4KICAKICA8IS0tIEN1cGlkc+OBruaWh+WtlyAtLT4KICA8ZyBmaWx0ZXI9InVybCgjc29mdFNoYWRvdykiPgogICAgPHRleHQgeD0iMTQ1IiB5PSIxMDUiIGZvbnQtZmFtaWx5PSInQ29taWMgU2FucyBNUycsICdBcmlhbCBSb3VuZGVkIE1UIEJvbGQnLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjcwIiBmb250LXdlaWdodD0iOTAwIiBmaWxsPSIjZmZmZmZmIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iNiI+CiAgICAgIEN1cGlkcwogICAgPC90ZXh0PgogICAgPHRleHQgeD0iMTQ1IiB5PSIxMDUiIGZvbnQtZmFtaWx5PSInQ29taWMgU2FucyBNUycsICdBcmlhbCBSb3VuZGVkIE1UIEJvbGQnLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjcwIiBmb250LXdlaWdodD0iOTAwIiBmaWxsPSJ1cmwoI3RleHRHcmFkKSI+CiAgICAgIEN1cGlkcwogICAgPC90ZXh0PgogIDwvZz4KICAKICA8IS0tIOOCteODluODhuOCreOCueODiCAtLT4KICA8dGV4dCB4PSIxNDciIHk9IjEzNSIgZm9udC1mYW1pbHk9IidDb21pYyBTYW5zIE1TJywgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZmlsbD0iI2E4NTVmNyIgZm9udC13ZWlnaHQ9ImJvbGQiIGxldHRlci1zcGFjaW5nPSIyIj4KICAgIOODgeODo+ODg+ODiOWNoOOBhAogIDwvdGV4dD4KICAKICA8IS0tIOWwj+OBleOBquODj+ODvOODiCAtLT4KICA8cGF0aCBkPSJNIDQ2MCw1MCBMIDQ2NSw0NSBRIDQ3MCw0MCA0NzMsNDUgUSA0NzYsNDAgNDgxLDQ1IEwgNDczLDYwIFoiIGZpbGw9IiNlYzQ4OTkiIG9wYWNpdHk9IjAuNyI+CiAgICA8YW5pbWF0ZVRyYW5zZm9ybSBhdHRyaWJ1dGVOYW1lPSJ0cmFuc2Zvcm0iIHR5cGU9InRyYW5zbGF0ZSIgdmFsdWVzPSIwLDA7IDAsLTU7IDAsMCIgZHVyPSIycyIgcmVwZWF0Q291bnQ9ImluZGVmaW5pdGUiLz4KICA8L3BhdGg+CiAgCiAgPCEtLSDjgq3jg6njgq3jg6kgLS0+CiAgPGcgb3BhY2l0eT0iMC44Ij4KICAgIDxjaXJjbGUgY3g9IjQzMCIgY3k9IjEwMCIgcj0iMyIgZmlsbD0iI2ZiYmYyNCI+CiAgICAgIDxhbmltYXRlIGF0dHJpYnV0ZU5hbWU9Im9wYWNpdHkiIHZhbHVlcz0iMTswLjQ7MSIgZHVyPSIxLjVzIiByZXBlYXRDb3VudD0iaW5kZWZpbml0ZSIvPgogICAgPC9jaXJjbGU+CiAgICA8cGF0aCBkPSJNIDQzMCw5NiBMIDQzMSw5OSBMIDQzNCwxMDAgTCA0MzEsMTAxIEwgNDMwLDEwNCBMIDQyOSwxMDEgTCA0MjYsMTAwIEwgNDI5LDk5IFoiIGZpbGw9IiNmZmZmZmYiPgogICAgICA8YW5pbWF0ZSBhdHRyaWJ1dGVOYW1lPSJvcGFjaXR5IiB2YWx1ZXM9IjE7MC41OzEiIGR1cj0iMS41cyIgcmVwZWF0Q291bnQ9ImluZGVmaW5pdGUiLz4KICAgIDwvcGF0aD4KICA8L2c+Cjwvc3ZnPgo="
+        alt="Cupids"
+        style={{ height: '40px', width: 'auto' }}
+      />
+    );
+
+    // メインアプリコンポーネント
+    function FortuneServiceApp() {
+      const [currentUser, setCurrentUser] = useState(null);
+      const [screen, setScreen] = useState('login');
+      const [loading, setLoading] = useState(true);
+      const [conversations, setConversations] = useState({});
+      const [currentChat, setCurrentChat] = useState(null);
+      const [selectedFortuneTellerId, setSelectedFortuneTellerId] = useState(null);
+      const [users, setUsers] = useState({});
+      const [fortuneTellers, setFortuneTellers] = useState({});
+      const [reviews, setReviews] = useState([]);
+      const [registrationType, setRegistrationType] = useState('client');
+      const messagesEndRef = useRef(null);
+
+      // Firebase認証の監視
+      useEffect(() => {
+        const unsubscribe = auth.onAuthStateChanged(async (user) => {
+          if (user) {
+            try {
+              const userDoc = await db.collection('users').doc(user.uid).get();
+              if (userDoc.exists) {
+                const userData = userDoc.data();
+                setCurrentUser({ ...userData, id: user.uid });
+                
+                if (userData.type === 'admin') {
+                  setScreen('admin');
+                } else if (userData.type === 'fortune-teller') {
+                  setScreen('lobby');
+                } else {
+                  setScreen('lobby');
+                }
+              }
+            } catch (error) {
+              console.error('ユーザー情報取得エラー:', error);
+            }
+          } else {
+            setCurrentUser(null);
+            setScreen('login');
+          }
+          setLoading(false);
+        });
+
+        return () => unsubscribe();
+      }, []);
+
+      // Firestoreのデータ監視
+      useEffect(() => {
+        if (!currentUser) return;
+
+        const unsubscribers = [];
+
+        // ユーザー一覧
+        const usersUnsubscribe = db.collection('users').onSnapshot((snapshot) => {
+          const data = {};
+          snapshot.forEach((doc) => {
+            data[doc.id] = { ...doc.data(), id: doc.id };
+          });
+          setUsers(data);
+        });
+        unsubscribers.push(usersUnsubscribe);
+
+        // 占い師一覧
+        const ftUnsubscribe = db.collection('fortuneTellers').onSnapshot((snapshot) => {
+          const data = {};
+          snapshot.forEach((doc) => {
+            data[doc.id] = { ...doc.data(), id: doc.id };
+          });
+          setFortuneTellers(data);
+        });
+        unsubscribers.push(ftUnsubscribe);
+
+        // 会話データ
+        const convUnsubscribe = db.collection('conversations')
+          .where(currentUser.type === 'client' ? 'clientId' : 'fortuneTellerId', '==', currentUser.id)
+          .onSnapshot((snapshot) => {
+            const data = {};
+            snapshot.forEach((doc) => {
+              data[doc.id] = { ...doc.data(), id: doc.id };
+            });
+            setConversations(data);
+          });
+        unsubscribers.push(convUnsubscribe);
+
+        return () => {
+          unsubscribers.forEach(unsubscribe => unsubscribe());
+        };
+      }, [currentUser]);
+
+      // ログイン処理
+      const handleLogin = async (email, password) => {
+        try {
+          setLoading(true);
+          // デモユーザーの場合は直接ログイン
+          if (email === 'demo@client.com' && password === 'demo') {
+            // デモユーザーが存在しない場合は作成
+            try {
+              await auth.createUserWithEmailAndPassword(email, password);
+              await db.collection('users').doc(auth.currentUser.uid).set({
+                name: 'デモ太郎',
+                email: email,
+                type: 'client',
+                points: 1500,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+              });
+            } catch (error) {
+              if (error.code === 'auth/email-already-in-use') {
+                await auth.signInWithEmailAndPassword(email, password);
+              } else {
+                throw error;
+              }
+            }
+          } else if (email === 'memetan@cupids.com' && password === 'admin123') {
+            // 管理者ユーザーの場合
+            try {
+              await auth.createUserWithEmailAndPassword(email, password);
+              await db.collection('users').doc(auth.currentUser.uid).set({
+                name: '管理者',
+                email: email,
+                type: 'admin',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+              });
+            } catch (error) {
+              if (error.code === 'auth/email-already-in-use') {
+                await auth.signInWithEmailAndPassword(email, password);
+              } else {
+                throw error;
+              }
+            }
+          } else {
+            await auth.signInWithEmailAndPassword(email, password);
+          }
+        } catch (error) {
+          alert('ログインエラー: ' + error.message);
+          setLoading(false);
+        }
+      };
+
+      // 新規登録処理
+      const handleRegister = async (userData) => {
+        try {
+          setLoading(true);
+          const authUser = await auth.createUserWithEmailAndPassword(userData.email, userData.password);
+          
+          await db.collection('users').doc(authUser.user.uid).set({
+            name: userData.name,
+            email: userData.email,
+            type: userData.type,
+            points: userData.type === 'client' ? 0 : undefined,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        } catch (error) {
+          alert('登録エラー: ' + error.message);
+          setLoading(false);
+        }
+      };
+
+      // ログアウト処理
+      const handleLogout = async () => {
+        try {
+          await auth.signOut();
+        } catch (error) {
+          alert('ログアウトエラー: ' + error.message);
+        }
+      };
+
+      // チャット開始
+      const startChat = async (fortuneTellerId) => {
+        const conversationId = `conv_${Date.now()}`;
+        
+        await db.collection('conversations').doc(conversationId).set({
+          clientId: currentUser.id,
+          clientName: currentUser.name,
+          fortuneTellerId: fortuneTellerId,
+          fortuneTellerName: fortuneTellers[fortuneTellerId]?.name,
+          messages: [],
+          status: 'active',
+          startedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          pointsUsed: 0
+        });
+
+        setCurrentChat(conversationId);
+        setSelectedFortuneTellerId(fortuneTellerId);
+        setScreen('chat');
+      };
+
+      // メッセージ送信
+      const sendMessage = async (text) => {
+        if (!currentChat || !text.trim()) return;
+
+        const message = {
+          sender: currentUser.type,
+          senderName: currentUser.name,
+          text: text,
+          timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        await db.collection('conversations').doc(currentChat).update({
+          messages: firebase.firestore.FieldValue.arrayUnion(message)
+        });
+
+        // クライアントの場合はポイント消費
+        if (currentUser.type === 'client') {
+          const pointsToDeduct = Math.ceil(text.length * 1); // 1文字1ポイント
+          await db.collection('users').doc(currentUser.id).update({
+            points: firebase.firestore.FieldValue.increment(-pointsToDeduct)
+          });
+        }
+      };
+
+      // ポイント購入
+      const purchasePoints = async (amount) => {
+        await db.collection('users').doc(currentUser.id).update({
+          points: firebase.firestore.FieldValue.increment(amount)
+        });
+        alert(`${amount}ポイントを購入しました！`);
+        setScreen('lobby');
+      };
+
+      // ===== LoginScreen =====
+      const LoginScreen = () => {
+        const [email, setEmail] = useState('');
+        const [password, setPassword] = useState('');
+
+        return (
+          <div style={{
+            minHeight: '100vh',
+            background: 'white',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px'
+          }}>
+            <div style={{
+              maxWidth: '400px',
+              width: '100%',
+              background: 'white',
+              borderRadius: '24px',
+              padding: '32px',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.1)'
+            }}>
+              <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+                <CupidsLogo />
+                <p style={{ 
+                  color: '#ec4899', 
+                  marginTop: '16px',
+                  marginBottom: '24px', 
+                  fontSize: '13px', 
+                  fontWeight: 'bold' 
+                }}>
+                  月に代わってあなたの恋を応援します♡
+                </p>
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ 
+                  display: 'block', 
+                  fontSize: '14px', 
+                  fontWeight: '500', 
+                  color: '#374151', 
+                  marginBottom: '8px' 
+                }}>
+                  メールアドレス
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '14px'
+                  }}
+                  placeholder="your@email.com"
+                />
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ 
+                  display: 'block', 
+                  fontSize: '14px', 
+                  fontWeight: '500', 
+                  color: '#374151', 
+                  marginBottom: '8px' 
+                }}>
+                  パスワード
+                </label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleLogin(email, password)}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '14px'
+                  }}
+                  placeholder="••••••••"
+                />
+              </div>
+
+              <button
+                onClick={() => handleLogin(email, password)}
+                style={{
+                  width: '100%',
+                  background: 'linear-gradient(to right, #ec4899, #a855f7)',
+                  color: 'white',
+                  fontWeight: 'bold',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '16px'
+                }}
+              >
+                ログイン
+              </button>
+
+              <button
+                onClick={() => setScreen('register')}
+                style={{
+                  width: '100%',
+                  background: 'white',
+                  color: '#a855f7',
+                  fontWeight: 'bold',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  border: '2px solid #a855f7',
+                  cursor: 'pointer',
+                  fontSize: '16px',
+                  marginTop: '12px'
+                }}
+              >
+                新規登録
+              </button>
+
+              <div style={{
+                marginTop: '24px',
+                padding: '16px',
+                background: '#f9fafb',
+                borderRadius: '8px',
+                fontSize: '12px',
+                color: '#6b7280'
+              }}>
+                <p style={{ marginBottom: '8px', fontWeight: 'bold', color: '#374151' }}>
+                  デモアカウント：
+                </p>
+                <p style={{ marginBottom: '4px' }}>
+                  お客様: demo@client.com / demo
+                </p>
+                <p>
+                  管理者: memetan@cupids.com / admin123
+                </p>
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      // ===== RegisterScreen =====
+      const RegisterScreen = () => {
+        const [clientName, setClientName] = useState('');
+        const [clientEmail, setClientEmail] = useState('');
+        const [clientPassword, setClientPassword] = useState('');
+
+        const handleClientSubmit = () => {
+          if (!clientName || !clientEmail || !clientPassword) {
+            alert('全ての項目を入力してください');
+            return;
+          }
+          
+          handleRegister({
+            name: clientName,
+            email: clientEmail,
+            password: clientPassword,
+            type: 'client'
+          });
+        };
+
+        return (
+          <div style={{
+            minHeight: '100vh',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '32px 16px'
+          }}>
+            <div style={{
+              maxWidth: '600px',
+              width: '100%',
+              background: 'white',
+              borderRadius: '24px',
+              padding: '32px',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
+            }}>
+              <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+                <Icons.Moon size={48} color="#667eea" />
+                <h1 style={{ 
+                  fontSize: '28px', 
+                  fontWeight: 'bold', 
+                  color: '#667eea', 
+                  marginTop: '16px',
+                  marginBottom: '8px' 
+                }}>
+                  新規登録
+                </h1>
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ 
+                  display: 'block', 
+                  fontSize: '14px', 
+                  fontWeight: '500', 
+                  color: '#374151', 
+                  marginBottom: '8px' 
+                }}>
+                  お名前 <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  value={clientName}
+                  onChange={(e) => setClientName(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '14px'
+                  }}
+                  placeholder="山田太郎"
+                />
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ 
+                  display: 'block', 
+                  fontSize: '14px', 
+                  fontWeight: '500', 
+                  color: '#374151', 
+                  marginBottom: '8px' 
+                }}>
+                  メールアドレス <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <input
+                  type="email"
+                  value={clientEmail}
+                  onChange={(e) => setClientEmail(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '14px'
+                  }}
+                  placeholder="your@email.com"
+                />
+              </div>
+
+              <div style={{ marginBottom: '24px' }}>
+                <label style={{ 
+                  display: 'block', 
+                  fontSize: '14px', 
+                  fontWeight: '500', 
+                  color: '#374151', 
+                  marginBottom: '8px' 
+                }}>
+                  パスワード <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <input
+                  type="password"
+                  value={clientPassword}
+                  onChange={(e) => setClientPassword(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '14px'
+                  }}
+                  placeholder="••••••••"
+                />
+              </div>
+
+              <button
+                onClick={handleClientSubmit}
+                style={{
+                  width: '100%',
+                  background: 'linear-gradient(to right, #ec4899, #a855f7)',
+                  color: 'white',
+                  fontWeight: 'bold',
+                  padding: '14px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '16px',
+                  marginBottom: '12px'
+                }}
+              >
+                登録
+              </button>
+
+              <button
+                onClick={() => setScreen('login')}
+                style={{
+                  width: '100%',
+                  background: 'white',
+                  color: '#6b7280',
+                  fontWeight: '600',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  border: '1px solid #d1d5db',
+                  cursor: 'pointer',
+                  fontSize: '14px'
+                }}
+              >
+                ログイン画面に戻る
+              </button>
+            </div>
+          </div>
+        );
+      };
+
+      // ===== LobbyScreen =====
+      const LobbyScreen = () => {
+        if (currentUser.type === 'client') {
+          return (
+            <div style={{ minHeight: '100vh', background: '#f9fafb' }}>
+              <div style={{
+                background: 'linear-gradient(to right, #ec4899, #a855f7)',
+                padding: '16px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+              }}>
+                <div style={{
+                  maxWidth: '1024px',
+                  margin: '0 auto',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <CupidsLogo />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <div style={{
+                      background: 'rgba(255,255,255,0.2)',
+                      padding: '8px 16px',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(255,255,255,0.3)'
+                    }}>
+                      <span style={{ color: 'white', fontSize: '14px', fontWeight: '600' }}>
+                        💰 {currentUser.points || 0}pt
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => setScreen('purchase')}
+                      style={{
+                        background: '#fbbf24',
+                        color: '#78350f',
+                        padding: '8px 16px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        fontWeight: '700'
+                      }}
+                    >
+                      ポイント購入
+                    </button>
+                    <span style={{ color: 'white', fontSize: '14px', fontWeight: '600' }}>
+                      {currentUser.name}さん
+                    </span>
+                    <button
+                      onClick={handleLogout}
+                      style={{
+                        background: 'rgba(255,255,255,0.2)',
+                        color: 'white',
+                        padding: '8px',
+                        borderRadius: '8px',
+                        border: '1px solid rgba(255,255,255,0.3)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      <Icons.LogOut size={16} />
+                      ログアウト
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ maxWidth: '1024px', margin: '0 auto', padding: '24px 16px' }}>
+                <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '16px' }}>占い師一覧</h2>
+                <div style={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', 
+                  gap: '16px' 
+                }}>
+                  {Object.values(fortuneTellers).map((ft) => (
+                    <div 
+                      key={ft.id}
+                      onClick={() => startChat(ft.id)}
+                      style={{
+                        background: 'white',
+                        borderRadius: '12px',
+                        padding: '16px',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                        cursor: 'pointer',
+                        transition: 'transform 0.2s',
+                        border: '1px solid #e5e7eb'
+                      }}
+                      onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+                      onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                    >
+                      <div style={{ display: 'flex', gap: '12px' }}>
+                        <div style={{
+                          width: '60px',
+                          height: '60px',
+                          borderRadius: '50%',
+                          background: 'linear-gradient(135deg, #a855f7, #ec4899)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0
+                        }}>
+                          <span style={{ color: 'white', fontSize: '20px', fontWeight: 'bold' }}>
+                            {ft.name?.[0] || '?'}
+                          </span>
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '4px' }}>
+                            {ft.name}
+                          </h3>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '8px' }}>
+                            <Icons.Star size={14} fill="#fbbf24" color="#fbbf24" />
+                            <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#92400e' }}>
+                              {ft.rating || 0}
+                            </span>
+                          </div>
+                          <p style={{ fontSize: '12px', color: '#6b7280' }}>
+                            {ft.profile}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {Object.keys(fortuneTellers).length === 0 && (
+                  <div style={{ textAlign: 'center', padding: '48px', color: '#6b7280' }}>
+                    現在利用可能な占い師がいません
+                  </div>
+                )}
+
+                <div style={{ marginTop: '32px' }}>
+                  <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '16px' }}>チャット履歴</h2>
+                  {Object.values(conversations).map((conv) => (
+                    <div
+                      key={conv.id}
+                      onClick={() => {
+                        setCurrentChat(conv.id);
+                        setScreen('chat');
+                      }}
+                      style={{
+                        background: 'white',
+                        padding: '16px',
+                        borderRadius: '12px',
+                        marginBottom: '12px',
+                        cursor: 'pointer',
+                        border: '1px solid #e5e7eb',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '4px' }}>
+                        {conv.fortuneTellerName}
+                      </h3>
+                      <p style={{ fontSize: '14px', color: '#6b7280' }}>
+                        {conv.messages?.length || 0}件のメッセージ
+                      </p>
+                    </div>
+                  ))}
+                  {Object.keys(conversations).length === 0 && (
+                    <div style={{
+                      textAlign: 'center',
+                      padding: '48px 16px',
+                      color: '#6b7280'
+                    }}>
+                      <Icons.Mail size={48} color="#d1d5db" />
+                      <p style={{ marginTop: '16px' }}>まだチャットがありません</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        } else {
+          // 占い師のロビー
+          return (
+            <div style={{ minHeight: '100vh', background: '#f9fafb' }}>
+              <div style={{
+                background: 'linear-gradient(to right, #ec4899, #a855f7)',
+                padding: '16px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+              }}>
+                <div style={{
+                  maxWidth: '1024px',
+                  margin: '0 auto',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <CupidsLogo />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <span style={{ color: 'white', fontSize: '14px', fontWeight: '600' }}>
+                      {currentUser.name}さん
+                    </span>
+                    <button
+                      onClick={handleLogout}
+                      style={{
+                        background: 'rgba(255,255,255,0.2)',
+                        color: 'white',
+                        padding: '8px',
+                        borderRadius: '8px',
+                        border: '1px solid rgba(255,255,255,0.3)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      <Icons.LogOut size={16} />
+                      ログアウト
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ maxWidth: '1024px', margin: '0 auto', padding: '24px 16px' }}>
+                <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '16px' }}>相談者一覧</h2>
+                {Object.values(conversations).map((conv) => (
+                  <div
+                    key={conv.id}
+                    onClick={() => {
+                      setCurrentChat(conv.id);
+                      setScreen('chat');
+                    }}
+                    style={{
+                      background: 'white',
+                      padding: '16px',
+                      borderRadius: '12px',
+                      marginBottom: '12px',
+                      cursor: 'pointer',
+                      border: '1px solid #e5e7eb',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '4px' }}>
+                      {conv.clientName}
+                    </h3>
+                    <p style={{ fontSize: '14px', color: '#6b7280' }}>
+                      {conv.messages?.length || 0}件のメッセージ
+                    </p>
+                  </div>
+                ))}
+                {Object.keys(conversations).length === 0 && (
+                  <div style={{
+                    textAlign: 'center',
+                    padding: '48px 16px',
+                    color: '#6b7280'
+                  }}>
+                    <Icons.Mail size={48} color="#d1d5db" />
+                    <p style={{ marginTop: '16px' }}>まだ相談がありません</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        }
+      };
+
+      // ===== ChatScreen =====
+      const ChatScreen = () => {
+        const [messageText, setMessageText] = useState('');
+        const conversation = conversations[currentChat];
+
+        useEffect(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, [conversation?.messages]);
+
+        if (!conversation) {
+          return <div>チャットが見つかりません</div>;
+        }
+
+        return (
+          <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+            <div style={{
+              background: 'linear-gradient(to right, #ec4899, #a855f7)',
+              padding: '16px',
+              color: 'white',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px'
+            }}>
+              <button
+                onClick={() => setScreen('lobby')}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '4px'
+                }}
+              >
+                <Icons.ArrowLeft size={24} color="white" />
+              </button>
+              <h2 style={{ fontSize: '18px', fontWeight: 'bold', margin: 0 }}>
+                {currentUser.type === 'client' ? conversation.fortuneTellerName : conversation.clientName}
+              </h2>
+            </div>
+
+            <div style={{ 
+              flex: 1, 
+              overflowY: 'auto', 
+              padding: '16px',
+              background: '#f9fafb'
+            }}>
+              {conversation.messages?.map((msg, index) => (
+                <div key={index} style={{
+                  marginBottom: '12px',
+                  display: 'flex',
+                  justifyContent: msg.sender === currentUser.type ? 'flex-end' : 'flex-start'
+                }}>
+                  <div style={{
+                    maxWidth: '70%',
+                    background: msg.sender === currentUser.type ? 'linear-gradient(to right, #ec4899, #a855f7)' : 'white',
+                    color: msg.sender === currentUser.type ? 'white' : '#374151',
+                    padding: '12px',
+                    borderRadius: '12px',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                  }}>
+                    <p style={{ margin: 0 }}>{msg.text}</p>
+                    <p style={{ 
+                      fontSize: '11px', 
+                      marginTop: '4px', 
+                      opacity: 0.7,
+                      margin: 0
+                    }}>
+                      {msg.senderName}
+                    </p>
+                  </div>
+                </div>
+              ))}
+              <div ref={messagesEndRef} />
+            </div>
+
+            <div style={{
+              background: 'white',
+              padding: '16px',
+              borderTop: '1px solid #e5e7eb'
+            }}>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input
+                  type="text"
+                  value={messageText}
+                  onChange={(e) => setMessageText(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      sendMessage(messageText);
+                      setMessageText('');
+                    }
+                  }}
+                  placeholder="メッセージを入力..."
+                  style={{
+                    flex: 1,
+                    padding: '12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '14px'
+                  }}
+                />
+                <button
+                  onClick={() => {
+                    sendMessage(messageText);
+                    setMessageText('');
+                  }}
+                  style={{
+                    padding: '12px 20px',
+                    background: messageText.trim() ? 'linear-gradient(to right, #ec4899, #a855f7)' : '#d1d5db',
+                    color: 'white',
+                    borderRadius: '8px',
+                    border: 'none',
+                    cursor: messageText.trim() ? 'pointer' : 'not-allowed',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                  disabled={!messageText.trim()}
+                >
+                  <Icons.Send size={18} />
+                  送信
+                </button>
+              </div>
+              {currentUser.type === 'client' && (
+                <p style={{ 
+                  fontSize: '12px', 
+                  color: '#6b7280', 
+                  marginTop: '8px',
+                  margin: '8px 0 0 0'
+                }}>
+                  1文字1ポイント消費されます
+                </p>
+              )}
+            </div>
+          </div>
+        );
+      };
+
+      // ===== PurchaseScreen =====
+      const PurchaseScreen = () => {
+        const plans = [
+          { amount: 500, price: '¥500', color: '#10b981' },
+          { amount: 1000, price: '¥1,000', color: '#3b82f6' },
+          { amount: 3000, price: '¥3,000', color: '#8b5cf6' },
+          { amount: 5000, price: '¥5,000', color: '#ec4899' },
+          { amount: 10000, price: '¥10,000', color: '#f59e0b' }
+        ];
+
+        return (
+          <div style={{ minHeight: '100vh', background: '#f9fafb' }}>
+            <div style={{
+              background: 'linear-gradient(to right, #ec4899, #a855f7)',
+              padding: '16px',
+              color: 'white'
+            }}>
+              <div style={{
+                maxWidth: '800px',
+                margin: '0 auto',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px'
+              }}>
+                <button
+                  onClick={() => setScreen('lobby')}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '4px'
+                  }}
+                >
+                  <Icons.ArrowLeft size={24} color="white" />
+                </button>
+                <h1 style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>
+                  ポイント購入
+                </h1>
+              </div>
+            </div>
+
+            <div style={{ maxWidth: '800px', margin: '0 auto', padding: '32px 16px' }}>
+              <div style={{
+                background: 'white',
+                borderRadius: '16px',
+                padding: '24px',
+                marginBottom: '24px',
+                textAlign: 'center'
+              }}>
+                <Icons.DollarSign size={48} color="#fbbf24" />
+                <p style={{ fontSize: '18px', fontWeight: 'bold', marginTop: '16px' }}>
+                  現在のポイント: <span style={{ color: '#ec4899', fontSize: '24px' }}>{currentUser.points || 0}pt</span>
+                </p>
+              </div>
+
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', 
+                gap: '16px' 
+              }}>
+                {plans.map((plan) => (
+                  <button
+                    key={plan.amount}
+                    onClick={() => purchasePoints(plan.amount)}
+                    style={{
+                      background: 'white',
+                      border: `2px solid ${plan.color}`,
+                      borderRadius: '12px',
+                      padding: '24px',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.background = plan.color;
+                      e.currentTarget.style.color = 'white';
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.background = 'white';
+                      e.currentTarget.style.color = 'inherit';
+                    }}
+                  >
+                    <div style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '8px' }}>
+                      {plan.amount}pt
+                    </div>
+                    <div style={{ fontSize: '18px', fontWeight: '600' }}>
+                      {plan.price}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      // ===== AdminScreen =====
+      const AdminScreen = () => {
+        return (
+          <div style={{ minHeight: '100vh', background: '#f9fafb' }}>
+            <div style={{
+              background: 'linear-gradient(to right, #1f2937, #374151)',
+              padding: '16px',
+              color: 'white'
+            }}>
+              <div style={{
+                maxWidth: '1200px',
+                margin: '0 auto',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <h1 style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>
+                  管理者ダッシュボード
+                </h1>
+                <button
+                  onClick={handleLogout}
+                  style={{
+                    background: 'rgba(255,255,255,0.2)',
+                    color: 'white',
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(255,255,255,0.3)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  <Icons.LogOut size={16} />
+                  ログアウト
+                </button>
+              </div>
+            </div>
+
+            <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 16px' }}>
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
+                gap: '24px',
+                marginBottom: '32px'
+              }}>
+                <div style={{
+                  background: 'white',
+                  padding: '24px',
+                  borderRadius: '12px',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                }}>
+                  <h3 style={{ fontSize: '16px', color: '#6b7280', marginBottom: '8px' }}>
+                    総ユーザー数
+                  </h3>
+                  <p style={{ fontSize: '32px', fontWeight: 'bold', color: '#1f2937' }}>
+                    {Object.keys(users).length}
+                  </p>
+                </div>
+                <div style={{
+                  background: 'white',
+                  padding: '24px',
+                  borderRadius: '12px',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                }}>
+                  <h3 style={{ fontSize: '16px', color: '#6b7280', marginBottom: '8px' }}>
+                    占い師数
+                  </h3>
+                  <p style={{ fontSize: '32px', fontWeight: 'bold', color: '#1f2937' }}>
+                    {Object.keys(fortuneTellers).length}
+                  </p>
+                </div>
+                <div style={{
+                  background: 'white',
+                  padding: '24px',
+                  borderRadius: '12px',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                }}>
+                  <h3 style={{ fontSize: '16px', color: '#6b7280', marginBottom: '8px' }}>
+                    総チャット数
+                  </h3>
+                  <p style={{ fontSize: '32px', fontWeight: 'bold', color: '#1f2937' }}>
+                    {Object.keys(conversations).length}
+                  </p>
+                </div>
+              </div>
+
+              <div style={{
+                background: 'white',
+                borderRadius: '12px',
+                padding: '24px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+              }}>
+                <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '16px' }}>
+                  システム管理
+                </h2>
+                <p style={{ color: '#6b7280' }}>
+                  管理機能は順次実装予定です
+                </p>
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      // ローディング画面
+      if (loading) {
+        return (
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            height: '100vh',
+            background: 'linear-gradient(to bottom, #fdf2f8, #fce7f3)'
+          }}>
+            <div style={{ textAlign: 'center' }}>
+              <CupidsLogo />
+              <div style={{ marginTop: '20px', color: '#ec4899' }}>読み込み中...</div>
+            </div>
+          </div>
+        );
+      }
+
+      // 画面の表示
+      return (
+        <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+          {screen === 'login' && <LoginScreen />}
+          {screen === 'register' && <RegisterScreen />}
+          {screen === 'lobby' && <LobbyScreen />}
+          {screen === 'chat' && <ChatScreen />}
+          {screen === 'purchase' && <PurchaseScreen />}
+          {screen === 'admin' && <AdminScreen />}
+        </div>
+      );
+    }
+
+    // アプリのレンダリング
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<FortuneServiceApp />);
+  </script>
+</body>
+</html>
