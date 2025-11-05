@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Cupids - チャット占い</title>
+  
+  <!-- PWA設定 -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='75' font-size='75'>🌙</text></svg>">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#ec4899">
+  
+  <!-- React & Babel for JSX -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(to bottom right, #fef2f7, #fce7f3, #fdf2f8);
+      color: #1a1a1a;
+      min-height: 100vh;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    
+    input, textarea {
+      -webkit-user-select: auto;
+      user-select: auto;
+    }
+    
+    /* カスタムスクロールバー */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: rgba(236, 72, 153, 0.1);
+      border-radius: 10px;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: linear-gradient(135deg, #ec4899, #f472b6);
+      border-radius: 10px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+      background: linear-gradient(135deg, #db2777, #ec4899);
+    }
+    
+    /* アニメーション */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    @keyframes slideIn {
+      from { transform: translateX(-100%); }
+      to { transform: translateX(0); }
+    }
+    
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    
+    @keyframes sparkle {
+      0% { opacity: 0; transform: scale(0) rotate(0deg); }
+      50% { opacity: 1; transform: scale(1) rotate(180deg); }
+      100% { opacity: 0; transform: scale(0) rotate(360deg); }
+    }
+    
+    .fade-in {
+      animation: fadeIn 0.5s ease-out;
+    }
+    
+    .slide-in {
+      animation: slideIn 0.3s ease-out;
+    }
+    
+    .pulse {
+      animation: pulse 2s infinite;
+    }
+    
+    /* トースト通知 */
+    .toast {
+      position: fixed;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(135deg, rgba(236, 72, 153, 0.95), rgba(244, 114, 182, 0.95));
+      color: white;
+      padding: 14px 28px;
+      border-radius: 30px;
+      box-shadow: 0 10px 30px rgba(236, 72, 153, 0.3);
+      z-index: 10000;
+      animation: fadeIn 0.3s ease-out;
+      font-weight: 500;
+    }
+    
+    /* ボタンエフェクト */
+    .btn-primary {
+      background: linear-gradient(135deg, #ec4899, #f472b6);
+      color: white;
+      padding: 14px 32px;
+      border-radius: 30px;
+      border: none;
+      font-weight: 600;
+      font-size: 16px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 5px 20px rgba(236, 72, 153, 0.3);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(236, 72, 153, 0.4);
+    }
+    
+    .btn-primary:active {
+      transform: translateY(0);
+    }
+    
+    .btn-primary::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.3);
+      transform: translate(-50%, -50%);
+      transition: width 0.6s, height 0.6s;
+    }
+    
+    .btn-primary:active::before {
+      width: 300px;
+      height: 300px;
+    }
+    
+    /* カード */
+    .card {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+      transition: all 0.3s ease;
+      backdrop-filter: blur(10px);
+    }
+    
+    .card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.08);
+    }
+    
+    /* 占い師カード */
+    .fortune-card {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(252, 231, 243, 0.98));
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 0 10px 40px rgba(236, 72, 153, 0.15);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border: 1px solid rgba(236, 72, 153, 0.1);
+    }
+    
+    .fortune-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 50px rgba(236, 72, 153, 0.25);
+    }
+    
+    /* 評価表示 */
+    .rating {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      color: #666;
+    }
+    
+    .rating .stars {
+      color: #f59e0b;
+      font-weight: bold;
+      font-size: 16px;
+    }
+    
+    .rating .count {
+      color: #999;
+      font-size: 13px;
+    }
+    
+    /* ステータスバッジ */
+    .status-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .status-badge.online {
+      background: linear-gradient(135deg, #10b981, #34d399);
+      color: white;
+    }
+    
+    .status-badge.offline {
+      background: #e5e7eb;
+      color: #6b7280;
+    }
+    
+    .status-badge.busy {
+      background: linear-gradient(135deg, #f59e0b, #fbbf24);
+      color: white;
+    }
+    
+    /* チャットバブル */
+    .chat-bubble {
+      max-width: 70%;
+      padding: 12px 18px;
+      border-radius: 20px;
+      margin: 8px 0;
+      word-wrap: break-word;
+      animation: fadeIn 0.3s ease-out;
+    }
+    
+    .chat-bubble.user {
+      background: linear-gradient(135deg, #ec4899, #f472b6);
+      color: white;
+      margin-left: auto;
+      border-bottom-right-radius: 4px;
+    }
+    
+    .chat-bubble.fortune {
+      background: white;
+      color: #333;
+      border: 1px solid #f0f0f0;
+      border-bottom-left-radius: 4px;
+    }
+    
+    /* モーダル */
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      animation: fadeIn 0.2s ease-out;
+    }
+    
+    .modal-content {
+      background: white;
+      border-radius: 20px;
+      padding: 30px;
+      max-width: 90%;
+      max-height: 80%;
+      overflow-y: auto;
+      animation: slideIn 0.3s ease-out;
+    }
+    
+    /* 入力フィールド */
+    .input-field {
+      width: 100%;
+      padding: 14px 20px;
+      border: 2px solid rgba(236, 72, 153, 0.2);
+      border-radius: 15px;
+      font-size: 16px;
+      transition: all 0.3s ease;
+      background: rgba(255, 255, 255, 0.95);
+    }
+    
+    .input-field:focus {
+      outline: none;
+      border-color: #ec4899;
+      box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.1);
+    }
+    
+    /* ヘッダー */
+    .header {
+      background: linear-gradient(135deg, #ec4899, #8b5cf6);
+      color: white;
+      padding: 20px;
+      text-align: center;
+      box-shadow: 0 5px 20px rgba(139, 92, 246, 0.3);
+    }
+    
+    .header h1 {
+      font-size: 32px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+    
+    .header .subtitle {
+      font-size: 14px;
+      opacity: 0.95;
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+    const { Star, Heart, MessageCircle, User, LogOut, Send, ChevronLeft, 
+            Plus, Clock, DollarSign, TrendingUp, Users, Calendar, 
+            Menu, Settings, FileText, Wallet, CreditCard } = lucide;
+    
+    // ===== Firebase設定 =====
+    let auth = null;
+    let db = null;
+    let firebaseEnabled = false;
+    
+    try {
+      const firebaseConfig = {
+        apiKey: "YOUR_API_KEY",
+        authDomain: "YOUR_PROJECT.firebaseapp.com",
+        projectId: "YOUR_PROJECT",
+        storageBucket: "YOUR_PROJECT.appspot.com",
+        messagingSenderId: "YOUR_SENDER_ID",
+        appId: "YOUR_APP_ID"
+      };
+      
+      if (typeof firebase !== 'undefined' && firebaseConfig.apiKey !== "YOUR_API_KEY") {
+        firebase.initializeApp(firebaseConfig);
+        auth = firebase.auth();
+        db = firebase.firestore();
+        firebaseEnabled = true;
+        console.log('🔥 Firebase初期化完了！');
+      } else {
+        console.log('📝 デモモードで動作中（Firebase未設定）');
+      }
+    } catch (error) {
+      console.log('⚠️ Firebase初期化をスキップ:', error.message);
+    }
+    
+    // ===== メインアプリケーション =====
+    function CupidsApp() {
+      const [screen, setScreen] = useState('login');
+      const [currentUser, setCurrentUser] = useState(null);
+      const [loading, setLoading] = useState(false);
+      const [toast, setToast] = useState(null);
+      
+      // 占い師データ
+      const [fortuneTellers] = useState([
+        {
+          id: 1,
+          name: '七水南',
+          avatar: '🌟',
+          status: 'online',
+          statusText: 'いますぐスタート',
+          rating: 4.92,
+          reviews: 3705,
+          price: 280,
+          introduction: '恋愛の悩みは私にお任せください♡',
+          categories: ['恋愛', '結婚', '復縁'],
+          specialty: 'タロット',
+          waitTime: '約5分',
+          image: null
+        },
+        {
+          id: 2,
+          name: '月野うさぎ',
+          avatar: '🔮',
+          status: 'online',
+          statusText: 'いますぐスタート',
+          rating: 4.85,
+          reviews: 2456,
+          price: 320,
+          introduction: '運命の人との出会いを導きます',
+          categories: ['恋愛', '人間関係', '仕事'],
+          specialty: '西洋占星術',
+          waitTime: '約10分',
+          image: null
+        },
+        {
+          id: 3,
+          name: '星野ルビー',
+          avatar: '✨',
+          status: 'busy',
+          statusText: '鑑定中',
+          rating: 4.78,
+          reviews: 1892,
+          price: 300,
+          introduction: 'あなたの未来を照らします',
+          categories: ['仕事', '金運', '転職'],
+          specialty: '霊視',
+          waitTime: '約30分',
+          image: null
+        }
+      ]);
+      
+      const [messages, setMessages] = useState([]);
+      const [inputMessage, setInputMessage] = useState('');
+      const [selectedFortuneTeller, setSelectedFortuneTeller] = useState(null);
+      const [points, setPoints] = useState(5000);
+      const [purchaseHistory, setPurchaseHistory] = useState([]);
+      
+      // トースト表示
+      const showToast = (message) => {
+        setToast(message);
+        setTimeout(() => setToast(null), 3000);
+      };
+      
+      // ログイン処理
+      const handleLogin = async (email, password) => {
+        setLoading(true);
+        
+        // デモアカウント
+        if (email === 'demo@client.com' && password === 'demo') {
+          setCurrentUser({
+            id: 'demo',
+            name: 'デモユーザー',
+            email: email,
+            type: 'client',
+            points: 5000
+          });
+          setPoints(5000);
+          setScreen('lobby');
+          showToast('ログインしました');
+        } else if (firebaseEnabled && auth) {
+          // Firebase認証
+          try {
+            await auth.signInWithEmailAndPassword(email, password);
+            showToast('ログインしました');
+          } catch (error) {
+            if (error.code === 'auth/user-not-found') {
+              await auth.createUserWithEmailAndPassword(email, password);
+              showToast('新規登録しました');
+            } else {
+              showToast('ログインに失敗しました');
+            }
+          }
+        } else {
+          showToast('メールアドレスまたはパスワードが正しくありません');
+        }
+        
+        setLoading(false);
+      };
+      
+      // Firebase認証監視
+      useEffect(() => {
+        if (!firebaseEnabled || !auth) return;
+        
+        const unsubscribe = auth.onAuthStateChanged((user) => {
+          if (user) {
+            setCurrentUser({
+              id: user.uid,
+              email: user.email,
+              name: user.displayName || 'ユーザー',
+              type: 'client',
+              points: points
+            });
+            setScreen('lobby');
+          }
+        });
+        
+        return () => unsubscribe();
+      }, [points]);
+      
+      // ===== ログイン画面 =====
+      const LoginScreen = () => {
+        const [email, setEmail] = useState('');
+        const [password, setPassword] = useState('');
+        
+        return (
+          <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+            <div className="card" style={{ maxWidth: '450px', width: '100%', padding: '40px' }}>
+              <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+                <div style={{ fontSize: '60px', marginBottom: '20px' }}>🌙</div>
+                <h1 style={{ fontSize: '36px', fontWeight: '700', color: '#ec4899', marginBottom: '12px' }}>
+                  Cupids
+                </h1>
+                <p style={{ fontSize: '16px', color: '#6b7280' }}>
+                  チャット占い
+                </p>
+                <p style={{ fontSize: '14px', color: '#ec4899', marginTop: '8px', fontWeight: '500' }}>
+                  月に代わってあなたの恋を応援します♡
+                </p>
+              </div>
+              
+              <div style={{ marginBottom: '30px' }}>
+                <h3 style={{ fontSize: '18px', marginBottom: '20px', color: '#333', fontWeight: '600' }}>
+                  今すぐ占る占い師
+                </h3>
+                
+                <div className="fortune-card" style={{ marginBottom: '25px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                    <div style={{
+                      width: '70px',
+                      height: '70px',
+                      background: 'linear-gradient(135deg, #fef3c7, #fde68a)',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '32px'
+                    }}>
+                      {fortuneTellers[0].avatar}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <h4 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '6px' }}>
+                        {fortuneTellers[0].name}
+                      </h4>
+                      <div className="rating">
+                        <span className="stars">★ {fortuneTellers[0].rating}</span>
+                        <span className="count">({fortuneTellers[0].reviews.toLocaleString()}件)</span>
+                      </div>
+                      <p style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+                        {fortuneTellers[0].specialty} · {fortuneTellers[0].waitTime}待ち
+                      </p>
+                    </div>
+                  </div>
+                  <button 
+                    className="btn-primary" 
+                    style={{
+                      width: '100%',
+                      marginTop: '15px',
+                      background: 'linear-gradient(135deg, #10b981, #34d399)'
+                    }}
+                    onClick={() => {
+                      showToast('ログインしてください');
+                    }}
+                  >
+                    いますぐスタート
+                  </button>
+                </div>
+              </div>
+              
+              <div>
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#374151', fontWeight: '500' }}>
+                    メールアドレス
+                  </label>
+                  <input
+                    type="email"
+                    className="input-field"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="your@email.com"
+                  />
+                </div>
+                
+                <div style={{ marginBottom: '25px' }}>
+                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#374151', fontWeight: '500' }}>
+                    パスワード
+                  </label>
+                  <input
+                    type="password"
+                    className="input-field"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                  />
+                </div>
+                
+                <button
+                  className="btn-primary"
+                  style={{ width: '100%' }}
+                  onClick={() => handleLogin(email, password)}
+                  disabled={loading}
+                >
+                  {loading ? '読み込み中...' : 'ログイン / 新規登録'}
+                </button>
+                
+                <div style={{
+                  marginTop: '20px',
+                  padding: '15px',
+                  background: 'rgba(236, 72, 153, 0.05)',
+                  borderRadius: '10px',
+                  fontSize: '13px',
+                  color: '#6b7280'
+                }}>
+                  <p style={{ fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
+                    デモアカウント：
+                  </p>
+                  <p>お客様: demo@client.com / demo</p>
+                  <p style={{ marginTop: '8px', fontSize: '12px', color: '#ec4899', fontWeight: '500' }}>
+                    {firebaseEnabled ? '※ 新規アカウントは自動作成されます' : '※ デモモード（Firebase未設定）'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      };
+      
+      // ===== ロビー画面 =====
+      const LobbyScreen = () => {
+        return (
+          <div style={{ minHeight: '100vh' }}>
+            <div className="header">
+              <h1>
+                <span style={{ fontSize: '40px' }}>🌙</span>
+                Cupids
+              </h1>
+              <p className="subtitle">月に代わってあなたの恋を応援します♡</p>
+            </div>
+            
+            <div style={{ padding: '20px' }}>
+              <div style={{
+                background: 'linear-gradient(135deg, #fef3c7, #fde68a)',
+                borderRadius: '15px',
+                padding: '15px',
+                marginBottom: '20px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <div>
+                  <p style={{ fontSize: '14px', color: '#78350f', marginBottom: '4px' }}>保有ポイント</p>
+                  <p style={{ fontSize: '24px', fontWeight: '700', color: '#78350f' }}>
+                    {points.toLocaleString()}pt
+                  </p>
+                </div>
+                <button
+                  className="btn-primary"
+                  style={{ background: 'linear-gradient(135deg, #f59e0b, #fbbf24)' }}
+                  onClick={() => setScreen('purchase')}
+                >
+                  <Plus style={{ width: '18px', height: '18px', marginRight: '6px' }} />
+                  購入する
+                </button>
+              </div>
+              
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '15px' }}>
+                <h2 style={{ fontSize: '20px', fontWeight: '600', color: '#333' }}>
+                  占い師一覧
+                </h2>
+                <button
+                  onClick={() => {
+                    setCurrentUser(null);
+                    setScreen('login');
+                    showToast('ログアウトしました');
+                  }}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '20px',
+                    border: 'none',
+                    background: 'rgba(239, 68, 68, 0.1)',
+                    color: '#ef4444',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <LogOut style={{ width: '16px', height: '16px', marginRight: '4px' }} />
+                  ログアウト
+                </button>
+              </div>
+              
+              <div style={{ display: 'grid', gap: '15px' }}>
+                {fortuneTellers.map(ft => (
+                  <div
+                    key={ft.id}
+                    className="fortune-card"
+                    onClick={() => {
+                      setSelectedFortuneTeller(ft);
+                      setScreen('chat');
+                      showToast(`${ft.name}との鑑定を開始します`);
+                    }}
+                  >
+                    <div style={{ display: 'flex', gap: '15px' }}>
+                      <div style={{
+                        width: '80px',
+                        height: '80px',
+                        background: ft.status === 'online' 
+                          ? 'linear-gradient(135deg, #fef3c7, #fde68a)'
+                          : 'linear-gradient(135deg, #f3f4f6, #e5e7eb)',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '36px',
+                        position: 'relative'
+                      }}>
+                        {ft.avatar}
+                        {ft.status === 'online' && (
+                          <div style={{
+                            position: 'absolute',
+                            bottom: '4px',
+                            right: '4px',
+                            width: '20px',
+                            height: '20px',
+                            background: '#10b981',
+                            borderRadius: '50%',
+                            border: '3px solid white'
+                          }}/>
+                        )}
+                      </div>
+                      
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                          <h3 style={{ fontSize: '18px', fontWeight: '600' }}>{ft.name}</h3>
+                          <span className={`status-badge ${ft.status}`}>
+                            {ft.status === 'online' ? 'オンライン' : ft.status === 'busy' ? '鑑定中' : 'オフライン'}
+                          </span>
+                        </div>
+                        
+                        <div className="rating" style={{ marginBottom: '8px' }}>
+                          <span className="stars">★ {ft.rating}</span>
+                          <span className="count">({ft.reviews.toLocaleString()}件)</span>
+                        </div>
+                        
+                        <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '8px' }}>
+                          {ft.specialty} · {ft.waitTime}待ち · {ft.price}円/分
+                        </p>
+                        
+                        <p style={{ fontSize: '14px', color: '#4b5563' }}>{ft.introduction}</p>
+                        
+                        <div style={{ display: 'flex', gap: '6px', marginTop: '10px', flexWrap: 'wrap' }}>
+                          {ft.categories.map(cat => (
+                            <span
+                              key={cat}
+                              style={{
+                                padding: '4px 12px',
+                                borderRadius: '15px',
+                                background: 'rgba(236, 72, 153, 0.1)',
+                                color: '#ec4899',
+                                fontSize: '12px',
+                                fontWeight: '500'
+                              }}
+                            >
+                              {cat}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      };
+      
+      // ===== チャット画面 =====
+      const ChatScreen = () => {
+        const messagesEndRef = useRef(null);
+        
+        useEffect(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, [messages]);
+        
+        const sendMessage = () => {
+          if (inputMessage.trim() === '') return;
+          
+          const newMessage = {
+            id: Date.now(),
+            text: inputMessage,
+            sender: 'user',
+            timestamp: new Date()
+          };
+          
+          setMessages([...messages, newMessage]);
+          setInputMessage('');
+          
+          // ポイント消費
+          setPoints(prev => Math.max(0, prev - 50));
+          
+          // 自動返信（デモ）
+          setTimeout(() => {
+            const reply = {
+              id: Date.now() + 1,
+              text: 'お気持ちよくわかります。カードが示す未来を読み解いていきますね...',
+              sender: 'fortune',
+              timestamp: new Date()
+            };
+            setMessages(prev => [...prev, reply]);
+          }, 2000);
+        };
+        
+        return (
+          <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#f9fafb' }}>
+            <div style={{
+              background: 'linear-gradient(135deg, #ec4899, #8b5cf6)',
+              color: 'white',
+              padding: '15px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              boxShadow: '0 2px 10px rgba(139, 92, 246, 0.3)'
+            }}>
+              <button
+                onClick={() => {
+                  setScreen('lobby');
+                  setMessages([]);
+                  setSelectedFortuneTeller(null);
+                }}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  border: 'none',
+                  borderRadius: '10px',
+                  padding: '8px',
+                  cursor: 'pointer',
+                  color: 'white'
+                }}
+              >
+                <ChevronLeft style={{ width: '24px', height: '24px' }} />
+              </button>
+              
+              <div style={{ flex: 1 }}>
+                <h3 style={{ fontSize: '18px', fontWeight: '600' }}>
+                  {selectedFortuneTeller?.name}
+                </h3>
+                <p style={{ fontSize: '12px', opacity: '0.9' }}>
+                  {selectedFortuneTeller?.status === 'online' ? 'オンライン' : '鑑定中'}
+                </p>
+              </div>
+              
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.2)',
+                padding: '8px 16px',
+                borderRadius: '20px',
+                fontSize: '14px'
+              }}>
+                {points.toLocaleString()}pt
+              </div>
+            </div>
+            
+            <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
+              {messages.length === 0 && (
+                <div style={{
+                  textAlign: 'center',
+                  padding: '40px',
+                  color: '#9ca3af'
+                }}>
+                  <MessageCircle style={{ width: '48px', height: '48px', margin: '0 auto 16px', opacity: '0.5' }} />
+                  <p>メッセージを送信して鑑定を開始しましょう</p>
+                  <p style={{ fontSize: '12px', marginTop: '8px' }}>1メッセージ: 50pt</p>
+                </div>
+              )}
+              
+              {messages.map(msg => (
+                <div
+                  key={msg.id}
+                  className={`chat-bubble ${msg.sender}`}
+                  style={{
+                    display: 'flex',
+                    flexDirection: msg.sender === 'user' ? 'row-reverse' : 'row',
+                    alignItems: 'flex-start',
+                    gap: '10px',
+                    marginBottom: '15px'
+                  }}
+                >
+                  {msg.sender === 'fortune' && (
+                    <div style={{
+                      width: '40px',
+                      height: '40px',
+                      background: 'linear-gradient(135deg, #fef3c7, #fde68a)',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '20px'
+                    }}>
+                      {selectedFortuneTeller?.avatar}
+                    </div>
+                  )}
+                  <div className={`chat-bubble ${msg.sender}`}>
+                    {msg.text}
+                  </div>
+                </div>
+              ))}
+              <div ref={messagesEndRef} />
+            </div>
+            
+            <div style={{
+              background: 'white',
+              padding: '15px',
+              borderTop: '1px solid #e5e7eb',
+              display: 'flex',
+              gap: '12px'
+            }}>
+              <input
+                type="text"
+                className="input-field"
+                style={{ flex: 1, margin: 0 }}
+                value={inputMessage}
+                onChange={(e) => setInputMessage(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                placeholder="メッセージを入力..."
+              />
+              <button
+                className="btn-primary"
+                onClick={sendMessage}
+                disabled={inputMessage.trim() === '' || points < 50}
+                style={{
+                  padding: '12px 24px',
+                  opacity: inputMessage.trim() === '' || points < 50 ? 0.5 : 1
+                }}
+              >
+                <Send style={{ width: '20px', height: '20px' }} />
+              </button>
+            </div>
+          </div>
+        );
+      };
+      
+      // ===== ポイント購入画面 =====
+      const PurchaseScreen = () => {
+        const plans = [
+          { id: 1, points: 1000, price: '¥1,000', bonus: 0 },
+          { id: 2, points: 3000, price: '¥3,000', bonus: 150, popular: true },
+          { id: 3, points: 5000, price: '¥5,000', bonus: 500 },
+          { id: 4, points: 10000, price: '¥10,000', bonus: 1500 }
+        ];
+        
+        return (
+          <div style={{ minHeight: '100vh', background: '#f9fafb' }}>
+            <div style={{
+              background: 'linear-gradient(135deg, #ec4899, #8b5cf6)',
+              color: 'white',
+              padding: '15px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px'
+            }}>
+              <button
+                onClick={() => setScreen('lobby')}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  border: 'none',
+                  borderRadius: '10px',
+                  padding: '8px',
+                  cursor: 'pointer',
+                  color: 'white'
+                }}
+              >
+                <ChevronLeft style={{ width: '24px', height: '24px' }} />
+              </button>
+              <h2 style={{ fontSize: '20px', fontWeight: '600', margin: 0 }}>ポイント購入</h2>
+            </div>
+            
+            <div style={{ padding: '20px' }}>
+              <div className="card" style={{ marginBottom: '20px', textAlign: 'center' }}>
+                <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '8px' }}>現在のポイント</p>
+                <p style={{ fontSize: '32px', fontWeight: '700', color: '#ec4899' }}>
+                  {points.toLocaleString()}pt
+                </p>
+              </div>
+              
+              <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '15px' }}>プランを選択</h3>
+              
+              <div style={{ display: 'grid', gap: '15px' }}>
+                {plans.map(plan => (
+                  <div
+                    key={plan.id}
+                    className="card"
+                    style={{
+                      cursor: 'pointer',
+                      border: plan.popular ? '2px solid #ec4899' : '2px solid transparent',
+                      position: 'relative'
+                    }}
+                    onClick={() => {
+                      setPoints(prev => prev + plan.points + (plan.bonus || 0));
+                      setPurchaseHistory([...purchaseHistory, {
+                        id: Date.now(),
+                        points: plan.points + (plan.bonus || 0),
+                        price: plan.price,
+                        date: new Date()
+                      }]);
+                      showToast('ポイントを購入しました！');
+                      setScreen('lobby');
+                    }}
+                  >
+                    {plan.popular && (
+                      <div style={{
+                        position: 'absolute',
+                        top: '-10px',
+                        right: '20px',
+                        background: 'linear-gradient(135deg, #ec4899, #f472b6)',
+                        color: 'white',
+                        padding: '4px 12px',
+                        borderRadius: '10px',
+                        fontSize: '12px',
+                        fontWeight: '600'
+                      }}>
+                        人気No.1
+                      </div>
+                    )}
+                    
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <p style={{ fontSize: '24px', fontWeight: '700', color: '#333' }}>
+                          {(plan.points + (plan.bonus || 0)).toLocaleString()}pt
+                        </p>
+                        {plan.bonus > 0 && (
+                          <p style={{ fontSize: '14px', color: '#ec4899', fontWeight: '500' }}>
+                            +{plan.bonus}pt ボーナス
+                          </p>
+                        )}
+                      </div>
+                      <p style={{ fontSize: '20px', fontWeight: '600', color: '#6b7280' }}>
+                        {plan.price}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              <div style={{
+                marginTop: '30px',
+                padding: '20px',
+                background: 'rgba(236, 72, 153, 0.05)',
+                borderRadius: '15px'
+              }}>
+                <h4 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '10px', color: '#333' }}>
+                  お支払い方法
+                </h4>
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                  <span style={{ padding: '6px 12px', background: 'white', borderRadius: '8px', fontSize: '14px' }}>
+                    💳 クレジットカード
+                  </span>
+                  <span style={{ padding: '6px 12px', background: 'white', borderRadius: '8px', fontSize: '14px' }}>
+                    🏪 コンビニ決済
+                  </span>
+                  <span style={{ padding: '6px 12px', background: 'white', borderRadius: '8px', fontSize: '14px' }}>
+                    🏦 銀行振込
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      };
+      
+      // 画面の切り替え
+      return (
+        <div>
+          {toast && <div className="toast">{toast}</div>}
+          
+          {screen === 'login' && <LoginScreen />}
+          {screen === 'lobby' && <LobbyScreen />}
+          {screen === 'chat' && <ChatScreen />}
+          {screen === 'purchase' && <PurchaseScreen />}
+        </div>
+      );
+    }
+    
+    // アプリのレンダリング
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<CupidsApp />);
+  </script>
+</body>
+</html>
