@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cupids - チャット占い</title>
+  
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#ec4899">
+  <link rel="apple-touch-icon" href="./cupids_icon_192.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="./cupids_icon_192.png">
+  
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  
+  <style>
+    body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    * { box-sizing: border-box; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    // Firebase初期化
+    const firebaseConfig = {
+      apiKey: "AIzaSyA52uJ31HzLkbz32lA-3WWSmhM10xYjjCg",
+      authDomain: "cupids-chat.firebaseapp.com",
+      projectId: "cupids-chat",
+      storageBucket: "cupids-chat.firebasestorage.app",
+      messagingSenderId: "44532110483",
+      appId: "1:44532110483:web:d6266e8abba8582b8b6966"
+    };
+    
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    function FortuneServiceApp() {
+      // State管理
+      const [currentUser, setCurrentUser] = useState(null);
+      const [screen, setScreen] = useState('login');
+      const [loading, setLoading] = useState(true);
+      
+      // ログインフォーム用
+      const [email, setEmail] = useState('');
+      const [password, setPassword] = useState('');
+      
+      // 新規登録フォーム用
+      const [registrationType, setRegistrationType] = useState('client');
+      const [clientName, setClientName] = useState('');
+      const [clientEmail, setClientEmail] = useState('');
+      const [clientPassword, setClientPassword] = useState('');
+      
+      // チャット関連
+      const [fortuneTellers, setFortuneTellers] = useState([]);
+      const [selectedFortuneTeller, setSelectedFortuneTeller] = useState(null);
+      const [currentChat, setCurrentChat] = useState(null);
+      const [messages, setMessages] = useState([]);
+      const [messageText, setMessageText] = useState('');
+      
+      // ポイント購入
+      const [chargeCode, setChargeCode] = useState('');
+      
+      const maxChars = 500;
+      const messagesEndRef = useRef(null);
+
+      // 認証状態の監視
+      useEffect(() => {
+        const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
+          if (firebaseUser) {
+            try {
+              // Firestoreからユーザー情報をリアルタイム取得
+              const unsubscribeUser = db.collection('users').doc(firebaseUser.uid).onSnapshot((doc) => {
+                if (doc.exists) {
+                  const userData = doc.data();
+                  setCurrentUser({
+                    id: firebaseUser.uid,
+                    email: firebaseUser.email,
+                    ...userData
+                  });
+                  
+                  // 管理者なら管理画面、それ以外はロビー
+                  if (userData.type === 'admin') {
+                    setScreen('admin');
+                  } else if (screen === 'login' || screen === 'register') {
+                    setScreen('lobby');
+                  }
+                } else {
+                  console.error('User document does not exist');
+                  auth.signOut();
+                }
+                setLoading(false);
+              }, (error) => {
+                console.error('Error listening to user data:', error);
+                auth.signOut();
+                setLoading(false);
+              });
+              
+              // クリーンアップ関数を返す
+              return () => unsubscribeUser();
+            } catch (error) {
+              console.error('Error setting up user listener:', error);
+              await auth.signOut();
+              setLoading(false);
+            }
+          } else {
+            setCurrentUser(null);
+            setScreen('login');
+            setLoading(false);
+          }
+        });
+        
+        return () => unsubscribe();
+      }, []);
+
+      // 占い師一覧の取得（お客様の場合）
+      useEffect(() => {
+        if (currentUser?.type === 'client') {
+          const unsubscribe = db.collection('users')
+            .where('type', '==', 'fortune-teller')
+            .onSnapshot((snapshot) => {
+              const fts = [];
+              snapshot.forEach((doc) => {
+                fts.push({ id: doc.id, ...doc.data() });
+              });
+              setFortuneTellers(fts);
+            });
+          return () => unsubscribe();
+        }
+      }, [currentUser]);
+
+      // メッセージのリアルタイム取得
+      useEffect(() => {
+        if (currentChat && currentUser) {
+          const unsubscribe = db.collection('chats')
+            .doc(currentChat)
+            .collection('messages')
+            .orderBy('timestamp', 'asc')
+            .onSnapshot((snapshot) => {
+              const msgs = [];
+              snapshot.forEach((doc) => {
+                msgs.push({ id: doc.id, ...doc.data() });
+              });
+              setMessages(msgs);
+              setTimeout(() => {
+                messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+              }, 100);
+            });
+          return () => unsubscribe();
+        }
+      }, [currentChat, currentUser]);
+
+      // ログイン処理
+      const handleLogin = async () => {
+        if (!email || !password) {
+          alert('メールアドレスとパスワードを入力してください');
+          return;
+        }
+        
+        try {
+          setLoading(true);
+          await auth.signInWithEmailAndPassword(email, password);
+          // onAuthStateChangedで自動的にユーザー情報が設定される
+        } catch (error) {
+          console.error('Login error:', error);
+          if (error.code === 'auth/user-not-found') {
+            alert('ユーザーが見つかりません');
+          } else if (error.code === 'auth/wrong-password') {
+            alert('パスワードが正しくありません');
+          } else {
+            alert('ログインに失敗しました: ' + error.message);
+          }
+          setLoading(false);
+        }
+      };
+
+      // 新規登録処理（お客様）
+      const handleClientRegister = async () => {
+        if (!clientName || !clientEmail || !clientPassword) {
+          alert('全ての項目を入力してください');
+          return;
+        }
+        
+        if (clientPassword.length < 6) {
+          alert('パスワードは6文字以上で入力してください');
+          return;
+        }
+        
+        try {
+          setLoading(true);
+          
+          // Firebase Authenticationでユーザー作成
+          const userCredential = await auth.createUserWithEmailAndPassword(clientEmail, clientPassword);
+          
+          // Firestoreにユーザー情報を保存
+          await db.collection('users').doc(userCredential.user.uid).set({
+            name: clientName,
+            email: clientEmail,
+            type: 'client',
+            points: 0,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+          
+          // 登録成功後は自動的にログイン状態になる
+        } catch (error) {
+          console.error('Register error:', error);
+          if (error.code === 'auth/email-already-in-use') {
+            alert('このメールアドレスは既に使用されています');
+          } else if (error.code === 'auth/weak-password') {
+            alert('パスワードは6文字以上で入力してください');
+          } else {
+            alert('登録に失敗しました: ' + error.message);
+          }
+          setLoading(false);
+        }
+      };
+
+      // ログアウト処理
+      const handleLogout = async () => {
+        try {
+          await auth.signOut();
+          setCurrentUser(null);
+          setScreen('login');
+          setEmail('');
+          setPassword('');
+          setSelectedFortuneTeller(null);
+          setCurrentChat(null);
+          setMessages([]);
+        } catch (error) {
+          alert('ログアウトに失敗しました: ' + error.message);
+        }
+      };
+
+      // チャット開始
+      const handleStartChat = (fortuneTeller) => {
+        const chatId = [currentUser.id, fortuneTeller.id].sort().join('_');
+        setCurrentChat(chatId);
+        setSelectedFortuneTeller(fortuneTeller);
+        setScreen('chat');
+      };
+
+      // メッセージ送信
+      const handleSendMessage = async () => {
+        if (!messageText.trim() || !currentChat || !selectedFortuneTeller) return;
+        
+        const pointsPerChar = selectedFortuneTeller.pointsPerChar || 1;
+        const pointCost = messageText.length * pointsPerChar;
+        
+        // お客様の場合、ポイントチェック
+        if (currentUser.type === 'client') {
+          if (currentUser.points < pointCost) {
+            alert(`ポイントが不足しています。${pointCost}pt必要です。`);
+            setScreen('purchase');
+            return;
+          }
+        }
+        
+        try {
+          // メッセージを保存
+          await db.collection('chats').doc(currentChat).collection('messages').add({
+            text: messageText,
+            senderId: currentUser.id,
+            senderName: currentUser.name,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+            createdAt: new Date().toISOString()
+          });
+          
+          // ポイントを消費（お客様の場合）
+          if (currentUser.type === 'client') {
+            await db.collection('users').doc(currentUser.id).update({
+              points: firebase.firestore.FieldValue.increment(-pointCost)
+            });
+          }
+          
+          setMessageText('');
+        } catch (error) {
+          alert('送信に失敗しました: ' + error.message);
+        }
+      };
+
+      // チャージコード処理
+      const handleChargeCode = async () => {
+        if (!chargeCode.trim()) {
+          alert('チャージコードを入力してください');
+          return;
+        }
+        
+        try {
+          const code = chargeCode.trim().toUpperCase();
+          
+          // デモコード
+          if (code === 'DEMO100') {
+            await db.collection('users').doc(currentUser.id).update({
+              points: firebase.firestore.FieldValue.increment(100)
+            });
+            alert('100ポイントをチャージしました！');
+            setChargeCode('');
+          } else if (code === 'DEMO500') {
+            await db.collection('users').doc(currentUser.id).update({
+              points: firebase.firestore.FieldValue.increment(500)
+            });
+            alert('500ポイントをチャージしました！');
+            setChargeCode('');
+          } else {
+            alert('無効なチャージコードです');
+          }
+        } catch (error) {
+          alert('チャージに失敗しました: ' + error.message);
+        }
+      };
+
+      // ローディング画面
+      if (loading) {
+        return (
+          <div style={{
+            minHeight: '100vh',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+          }}>
+            <div style={{ color: 'white', fontSize: '20px' }}>読み込み中...</div>
+          </div>
+        );
+      }
+
+      // ログイン画面
+      if (screen === 'login') {
+        // 利用可能な占い師（デモ表示用）
+        const availableFortuneTellers = fortuneTellers.filter(ft => ft.status === 'available').slice(0, 3);
+        
+        return (
+          <div style={{
+            minHeight: '100vh',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '32px 16px'
+          }}>
+            <div style={{
+              maxWidth: '440px',
+              width: '100%',
+              background: 'white',
+              borderRadius: '24px',
+              padding: '32px',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.1)'
+            }}>
+              <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+                <img 
+                  src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAwIiBoZWlnaHQ9IjE4MCIgdmlld0JveD0iMCAwIDUwMCAxODAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InRleHRHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNlYzQ4OTk7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6I2E4NTVmNztzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8ZmlsdGVyIGlkPSJzb2Z0U2hhZG93Ij4KICAgICAgPGZlRHJvcFNoYWRvdyBkeD0iMCIgZHk9IjMiIHN0ZERldmlhdGlvbj0iMyIgZmxvb2QtY29sb3I9IiMwMDAwMDAiIGZsb29kLW9wYWNpdHk9IjAuMjUiLz4KICAgIDwvZmlsdGVyPgogIDwvZGVmcz4KICAKICA8IS0tIOWPr+aEm+OBhOaciO+8iOODnuODoeODreODs+miqO+8iSAtLT4KICA8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg3MCwgNjApIiBmaWx0ZXI9InVybCgjc29mdFNoYWRvdykiPgogICAgPCEtLSDmnIjmnKzkvZMgLS0+CiAgICA8cGF0aCBkPSJNIDAsMCBBIDM4LDM4IDAgMSwwIDIyLC0yMiBBIDI4LDI4IDAgMSwxIDAsMCBaIiBmaWxsPSIjZmVmM2M3Ii8+CiAgICA8IS0tIOaYn+OBrumjvuOCiiAtLT4KICAgIDxjaXJjbGUgY3g9IjEzIiBjeT0iLTEzIiByPSIzIiBmaWxsPSIjZmJiZjI0Ii8+CiAgICA8cGF0aCBkPSJNIDEzLC0xNiBMIDEzLjUsLTEzLjUgTCAxNiwtMTMgTCAxMy41LC0xMi41IEwgMTMsLTEwIEwgMTIuNSwtMTIuNSBMIDEwLC0xMyBMIDEyLjUsLTEzLjUgWiIgZmlsbD0iI2ZiYmYyNCIvPgogICAgPCEtLSDlsI/jgZXjgarmmJ8gLS0+CiAgICA8Y2lyY2xlIGN4PSItMTAiIGN5PSItMTAiIHI9IjIiIGZpbGw9IiNmYmJmMjQiIG9wYWNpdHk9IjAuOCIvPgogIDwvZz4KICAKICA8IS0tIEN1cGlkc+OBruaWh+WtlyAtLT4KICA8ZyBmaWx0ZXI9InVybCgjc29mdFNoYWRvdykiPgogICAgPHRleHQgeD0iMTQ1IiB5PSIxMDUiIGZvbnQtZmFtaWx5PSInQ29taWMgU2FucyBNUycsICdBcmlhbCBSb3VuZGVkIE1UIEJvbGQnLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjcwIiBmb250LXdlaWdodD0iOTAwIiBmaWxsPSIjZmZmZmZmIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iNiI+CiAgICAgIEN1cGlkcwogICAgPC90ZXh0PgogICAgPHRleHQgeD0iMTQ1IiB5PSIxMDUiIGZvbnQtZmFtaWx5PSInQ29taWMgU2FucyBNUycsICdBcmlhbCBSb3VuZGVkIE1UIEJvbGQnLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjcwIiBmb250LXdlaWdodD0iOTAwIiBmaWxsPSJ1cmwoI3RleHRHcmFkKSI+CiAgICAgIEN1cGlkcwogICAgPC90ZXh0PgogIDwvZz4KICAKICA8IS0tIOOCteODluODhuOCreOCueODiCAtLT4KICA8dGV4dCB4PSIxNDciIHk9IjEzNSIgZm9udC1mYW1pbHk9IidDb21pYyBTYW5zIE1TJywgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZmlsbD0iI2E4NTVmNyIgZm9udC13ZWlnaHQ9ImJvbGQiIGxldHRlci1zcGFjaW5nPSIyIj4KICAgIOODgeODo+ODg+ODiOWNoOOBhAogIDwvdGV4dD4KICAKICA8IS0tIOWwj+OBleOBquODj+ODvOODiCAtLT4KICA8cGF0aCBkPSJNIDQ2MCw1MCBMIDQ2NSw0NSBRIDQ3MCw0MCA0NzMsNDUgUSA0NzYsNDAgNDgxLDQ1IEwgNDczLDYwIFoiIGZpbGw9IiNlYzQ4OTkiIG9wYWNpdHk9IjAuNyI+CiAgICA8YW5pbWF0ZVRyYW5zZm9ybSBhdHRyaWJ1dGVOYW1lPSJ0cmFuc2Zvcm0iIHR5cGU9InRyYW5zbGF0ZSIgdmFsdWVzPSIwLDA7IDAsLTU7IDAsMCIgZHVyPSIycyIgcmVwZWF0Q291bnQ9ImluZGVmaW5pdGUiLz4KICA8L3BhdGg+CiAgCiAgPCEtLSDjgq3jg6njgq3jg6kgLS0+CiAgPGcgb3BhY2l0eT0iMC44Ij4KICAgIDxjaXJjbGUgY3g9IjQzMCIgY3k9IjEwMCIgcj0iMyIgZmlsbD0iI2ZiYmYyNCI+CiAgICAgIDxhbmltYXRlIGF0dHJpYnV0ZU5hbWU9Im9wYWNpdHkiIHZhbHVlcz0iMTswLjQ7MSIgZHVyPSIxLjVzIiByZXBlYXRDb3VudD0iaW5kZWZpbml0ZSIvPgogICAgPC9jaXJjbGU+CiAgICA8cGF0aCBkPSJNIDQzMCw5NiBMIDQzMSw5OSBMIDQzNCwxMDAgTCA0MzEsMTAxIEwgNDMwLDEwNCBMIDQyOSwxMDEgTCA0MjYsMTAwIEwgNDI5LDk5IFoiIGZpbGw9IiNmZmZmZmYiPgogICAgICA8YW5pbWF0ZSBhdHRyaWJ1dGVOYW1lPSJvcGFjaXR5IiB2YWx1ZXM9IjE7MC41OzEiIGR1cj0iMS41cyIgcmVwZWF0Q291bnQ9ImluZGVmaW5pdGUiLz4KICAgIDwvcGF0aD4KICA8L2c+Cjwvc3ZnPgo="
+                  alt="Cupids"
+                  style={{ width: '350px', height: 'auto', margin: '0 auto 16px' }}
+                />
+                <p style={{ 
+                  color: '#ec4899', 
+                  marginBottom: '24px', 
+                  fontSize: '13px', 
+                  fontWeight: 'bold', 
+                  fontFamily: "'Comic Sans MS', 'Mamelon', sans-serif" 
+                }}>
+                  月に代わってあなたの恋を応援します♡
+                </p>
+              </div>
+
+              {/* 占い師一覧 */}
+              {availableFortuneTellers.length > 0 && (
+                <div style={{ marginBottom: '24px' }}>
+                  <h2 style={{ fontSize: '16px', fontWeight: 'bold', color: '#1f2937', marginBottom: '12px' }}>
+                    今すぐ占える占い師
+                  </h2>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '200px', overflowY: 'auto' }}>
+                    {availableFortuneTellers.map((ft) => (
+                      <div key={ft.id} style={{
+                        background: '#f9fafb',
+                        borderRadius: '8px',
+                        padding: '12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        border: '1px solid #e5e7eb'
+                      }}>
+                        <div style={{
+                          width: '40px',
+                          height: '40px',
+                          borderRadius: '50%',
+                          background: 'linear-gradient(135deg, #ec4899, #a855f7)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0
+                        }}>
+                          <span style={{ color: 'white', fontSize: '16px', fontWeight: 'bold' }}>
+                            {ft.name[0]}
+                          </span>
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: '#1f2937', marginBottom: '2px' }}>
+                            {ft.name}
+                          </h3>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <span style={{ fontSize: '12px', color: '#6b7280' }}>
+                              ⭐ {ft.rating?.toFixed(1) || '5.0'}
+                            </span>
+                            <span style={{ fontSize: '12px', color: '#fbbf24' }}>
+                              鑑定数 {ft.reviewCount || 0}件
+                            </span>
+                          </div>
+                        </div>
+                        <div style={{
+                          background: '#10b981',
+                          color: 'white',
+                          padding: '4px 8px',
+                          borderRadius: '4px',
+                          fontSize: '10px',
+                          fontWeight: 'bold',
+                          textAlign: 'center',
+                          lineHeight: '1.3'
+                        }}>
+                          <div>いますぐ占える</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                  メールアドレス
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '14px'
+                  }}
+                  placeholder="your@email.com"
+                />
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                  パスワード
+                </label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '14px'
+                  }}
+                  placeholder="••••••••"
+                />
+              </div>
+
+              <button
+                onClick={handleLogin}
+                style={{
+                  width: '100%',
+                  background: 'linear-gradient(to right, #ec4899, #a855f7)',
+                  color: 'white',
+                  fontWeight: 'bold',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '16px'
+                }}
+              >
+                ログイン
+              </button>
+
+              <button
+                onClick={() => setScreen('register')}
+                style={{
+                  width: '100%',
+                  background: 'white',
+                  color: '#a855f7',
+                  fontWeight: 'bold',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  border: '2px solid #a855f7',
+                  cursor: 'pointer',
+                  fontSize: '16px',
+                  marginTop: '12px'
+                }}
+              >
+                新規登録
+              </button>
+            </div>
+          </div>
+        );
+      }
+      
+      // 新規登録画面
+      if (screen === 'register') {
+        return (
+          <div style={{
+            minHeight: '100vh',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '32px 16px'
+          }}>
+            <div style={{
+              maxWidth: '600px',
+              width: '100%',
+              background: 'white',
+              borderRadius: '24px',
+              padding: '32px',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
+            }}>
+              <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+                <div style={{ fontSize: '48px', marginBottom: '16px' }}>🌙</div>
+                <h1 style={{ fontSize: '28px', fontWeight: 'bold', color: '#667eea', marginBottom: '8px' }}>
+                  新規登録
+                </h1>
+              </div>
+
+              <div style={{ 
+                display: 'flex', 
+                gap: '8px', 
+                marginBottom: '24px',
+                borderBottom: '2px solid #e5e7eb'
+              }}>
+                <button
+                  onClick={() => setRegistrationType('client')}
+                  style={{
+                    flex: 1,
+                    padding: '12px',
+                    background: registrationType === 'client' ? 'linear-gradient(to right, #ec4899, #a855f7)' : 'transparent',
+                    color: registrationType === 'client' ? 'white' : '#6b7280',
+                    border: 'none',
+                    borderBottom: registrationType === 'client' ? '3px solid #ec4899' : 'none',
+                    cursor: 'pointer',
+                    fontSize: '16px',
+                    fontWeight: 'bold',
+                    borderRadius: '8px 8px 0 0'
+                  }}
+                >
+                  お客様
+                </button>
+                <button
+                  onClick={() => setRegistrationType('fortune-teller')}
+                  style={{
+                    flex: 1,
+                    padding: '12px',
+                    background: registrationType === 'fortune-teller' ? 'linear-gradient(to right, #ec4899, #a855f7)' : 'transparent',
+                    color: registrationType === 'fortune-teller' ? 'white' : '#6b7280',
+                    border: 'none',
+                    borderBottom: registrationType === 'fortune-teller' ? '3px solid #ec4899' : 'none',
+                    cursor: 'pointer',
+                    fontSize: '16px',
+                    fontWeight: 'bold',
+                    borderRadius: '8px 8px 0 0'
+                  }}
+                >
+                  占い師
+                </button>
+              </div>
+
+              {registrationType === 'client' ? (
+                <div>
+                  <div style={{ marginBottom: '16px' }}>
+                    <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                      お名前 <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={clientName}
+                      onChange={(e) => setClientName(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '12px 16px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        fontSize: '14px'
+                      }}
+                      placeholder="山田太郎"
+                    />
+                  </div>
+                  <div style={{ marginBottom: '16px' }}>
+                    <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                      メールアドレス <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <input
+                      type="email"
+                      value={clientEmail}
+                      onChange={(e) => setClientEmail(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '12px 16px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        fontSize: '14px'
+                      }}
+                      placeholder="your@email.com"
+                    />
+                  </div>
+                  <div style={{ marginBottom: '24px' }}>
+                    <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                      パスワード <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <input
+                      type="password"
+                      value={clientPassword}
+                      onChange={(e) => setClientPassword(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '12px 16px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        fontSize: '14px'
+                      }}
+                      placeholder="6文字以上"
+                    />
+                  </div>
+                  <button
+                    onClick={handleClientRegister}
+                    style={{
+                      width: '100%',
+                      background: 'linear-gradient(to right, #ec4899, #a855f7)',
+                      color: 'white',
+                      fontWeight: 'bold',
+                      padding: '14px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '16px',
+                      marginBottom: '12px'
+                    }}
+                  >
+                    登録する
+                  </button>
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '20px' }}>
+                  <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '20px' }}>
+                    占い師として登録するには、Googleフォームから応募してください。
+                  </p>
+                  <button
+                    onClick={() => {
+                      window.open('https://docs.google.com/forms/d/e/1FAIpQLSd47fyl7SSNBOcgdRyuKMx9N0rQVb9nZnlMfSlHlN4IEGbDpw/viewform', '_blank');
+                      alert('Googleフォームが開きました。\nフォームに入力して送信してください。\n審査結果はメールでお知らせします。');
+                      setScreen('login');
+                    }}
+                    style={{
+                      background: 'linear-gradient(to right, #ec4899, #a855f7)',
+                      color: 'white',
+                      fontWeight: 'bold',
+                      padding: '14px 32px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '16px'
+                    }}
+                  >
+                    Googleフォームを開く
+                  </button>
+                </div>
+              )}
+
+              <button
+                onClick={() => setScreen('login')}
+                style={{
+                  width: '100%',
+                  background: 'white',
+                  color: '#6b7280',
+                  fontWeight: 'bold',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  border: '1px solid #d1d5db',
+                  cursor: 'pointer',
+                  fontSize: '14px'
+                }}
+              >
+                ログインに戻る
+              </button>
+            </div>
+          </div>
+        );
+      }
+      
+      // ポイント購入画面
+      if (screen === 'purchase') {
+        const pointPackages = [
+          { id: 1, points: 500, basePoints: 500, bonusPoints: 0, price: 500, popular: false, url: 'https://minamisan.square.site/product/-cupids-500-/1?cs=true&cst=popular' },
+          { id: 2, points: 1500, basePoints: 1500, bonusPoints: 0, price: 1500, popular: false, url: 'https://minamisan.square.site/product/-cupids-1500-/2?si=true' },
+          { id: 3, points: 3100, basePoints: 3000, bonusPoints: 100, price: 3000, popular: true, url: 'https://minamisan.square.site/product/-cupids-3100-100pt-/3?si=true' },
+          { id: 4, points: 6250, basePoints: 6000, bonusPoints: 250, price: 6000, popular: false, url: 'https://minamisan.square.site/product/-cupids-6250-250pt-/4?si=true' }
+        ];
+
+        return (
+          <div style={{ minHeight: '100vh', background: '#f9fafb' }}>
+            <div style={{
+              background: 'linear-gradient(to right, #ec4899, #a855f7)',
+              padding: '16px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+            }}>
+              <div style={{
+                maxWidth: '800px',
+                margin: '0 auto',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <button
+                    onClick={() => setScreen('lobby')}
+                    style={{
+                      background: 'rgba(255,255,255,0.2)',
+                      color: 'white',
+                      padding: '8px',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(255,255,255,0.3)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    ←
+                  </button>
+                  <h1 style={{ fontSize: '20px', fontWeight: 'bold', color: 'white' }}>
+                    ポイント購入
+                  </h1>
+                </div>
+                <div style={{
+                  background: 'rgba(255,255,255,0.2)',
+                  padding: '8px 16px',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(255,255,255,0.3)'
+                }}>
+                  <span style={{ color: 'white', fontSize: '14px', fontWeight: '600' }}>
+                    現在: {currentUser.points}pt
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ maxWidth: '800px', margin: '0 auto', padding: '24px 16px' }}>
+              <div style={{
+                background: '#f9fafb',
+                borderRadius: '12px',
+                padding: '20px',
+                marginBottom: '24px',
+                border: '1px solid #e5e7eb'
+              }}>
+                <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: '#1f2937', marginBottom: '12px' }}>
+                  ご購入の流れ
+                </h3>
+                <ol style={{ fontSize: '14px', color: '#6b7280', lineHeight: '1.8', paddingLeft: '20px', marginBottom: '12px' }}>
+                  <li>お好きなポイントパッケージの「購入する」ボタンをクリック</li>
+                  <li>決済ページが開きますので、お支払い情報を入力</li>
+                  <li>購入完了後、メールでチャージコードが送られます</li>
+                  <li>チャージコードを下の入力欄に入力してポイントをチャージ</li>
+                </ol>
+                <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '8px' }}>
+                  ※1円で1ポイントになります
+                </p>
+              </div>
+
+              <div style={{
+                background: 'white',
+                borderRadius: '12px',
+                padding: '24px',
+                marginBottom: '24px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+              }}>
+                <h2 style={{ fontSize: '18px', fontWeight: 'bold', color: '#1f2937', marginBottom: '16px' }}>
+                  チャージコードをお持ちの方
+                </h2>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <input
+                    type="text"
+                    value={chargeCode}
+                    onChange={(e) => setChargeCode(e.target.value)}
+                    placeholder="チャージコードを入力"
+                    style={{
+                      flex: 1,
+                      padding: '12px',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px',
+                      fontSize: '14px'
+                    }}
+                  />
+                  <button
+                    onClick={handleChargeCode}
+                    style={{
+                      background: 'linear-gradient(to right, #ec4899, #a855f7)',
+                      color: 'white',
+                      padding: '12px 24px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontWeight: 'bold',
+                      fontSize: '14px'
+                    }}
+                  >
+                    チャージ
+                  </button>
+                </div>
+              </div>
+
+              <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#1f2937', marginBottom: '16px' }}>
+                ポイントパッケージ
+              </h2>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px' }}>
+                {pointPackages.map(pkg => (
+                  <div
+                    key={pkg.id}
+                    style={{
+                      background: 'white',
+                      borderRadius: '12px',
+                      padding: '20px',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                      border: pkg.popular ? '2px solid #ec4899' : '1px solid #e5e7eb',
+                      position: 'relative'
+                    }}
+                  >
+                    {pkg.popular && (
+                      <div style={{
+                        position: 'absolute',
+                        top: '-10px',
+                        right: '10px',
+                        background: '#ec4899',
+                        color: 'white',
+                        padding: '4px 12px',
+                        borderRadius: '12px',
+                        fontSize: '12px',
+                        fontWeight: 'bold'
+                      }}>
+                        人気
+                      </div>
+                    )}
+                    <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#1f2937', marginBottom: '8px' }}>
+                      {pkg.points}pt
+                    </div>
+                    {pkg.bonusPoints > 0 && (
+                      <div style={{ fontSize: '12px', color: '#ec4899', marginBottom: '8px' }}>
+                        +{pkg.bonusPoints}pt ボーナス
+                      </div>
+                    )}
+                    <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#6b7280', marginBottom: '16px' }}>
+                      ¥{pkg.price.toLocaleString()}
+                    </div>
+                    <button
+                      onClick={() => {
+                        window.open(pkg.url, '_blank');
+                        alert('購入完了後、メールに記載されたチャージコードを入力してください。');
+                      }}
+                      style={{
+                        width: '100%',
+                        background: 'linear-gradient(to right, #ec4899, #a855f7)',
+                        color: 'white',
+                        padding: '10px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontWeight: 'bold',
+                        fontSize: '14px'
+                      }}
+                    >
+                      購入する
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      // ロビー画面
+      if (screen === 'lobby') {
+        return (
+          <div style={{ minHeight: '100vh', background: '#f9fafb' }}>
+            <div style={{
+              background: 'linear-gradient(to right, #ec4899, #a855f7)',
+              padding: '16px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+            }}>
+              <div style={{
+                maxWidth: '1200px',
+                margin: '0 auto',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <div>
+                  <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: 'white', marginBottom: '4px' }}>
+                    Cupids
+                  </h1>
+                  <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.9)' }}>
+                    {currentUser?.name}さん
+                  </p>
+                </div>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                  {currentUser?.type === 'client' && (
+                    <>
+                      <div style={{
+                        background: 'rgba(255,255,255,0.2)',
+                        padding: '8px 16px',
+                        borderRadius: '8px',
+                        fontSize: '16px',
+                        fontWeight: 'bold',
+                        color: 'white'
+                      }}>
+                        {currentUser.points}pt
+                      </div>
+                      <button
+                        onClick={() => setScreen('purchase')}
+                        style={{
+                          background: '#10b981',
+                          color: 'white',
+                          padding: '8px 16px',
+                          borderRadius: '8px',
+                          border: 'none',
+                          cursor: 'pointer',
+                          fontSize: '14px',
+                          fontWeight: '600'
+                        }}
+                      >
+                        ポイント購入
+                      </button>
+                    </>
+                  )}
+                  <button
+                    onClick={handleLogout}
+                    style={{
+                      background: 'rgba(255,255,255,0.2)',
+                      color: 'white',
+                      padding: '8px 16px',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(255,255,255,0.3)',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      fontWeight: '600'
+                    }}
+                  >
+                    ログアウト
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 16px' }}>
+              {currentUser?.type === 'client' ? (
+                <div>
+                  <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1f2937', marginBottom: '16px' }}>
+                    占い師一覧
+                  </h2>
+                  {fortuneTellers.length === 0 ? (
+                    <p style={{ color: '#6b7280' }}>占い師が登録されていません</p>
+                  ) : (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' }}>
+                      {fortuneTellers.map((ft) => (
+                        <div
+                          key={ft.id}
+                          style={{
+                            background: 'white',
+                            borderRadius: '12px',
+                            padding: '20px',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                            cursor: 'pointer'
+                          }}
+                          onClick={() => handleStartChat(ft)}
+                        >
+                          <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: '#1f2937', marginBottom: '8px' }}>
+                            {ft.name}
+                          </h3>
+                          <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '8px' }}>
+                            {ft.specialty || '占い師'}
+                          </p>
+                          <div style={{ fontSize: '14px', color: '#ec4899', fontWeight: 'bold', marginBottom: '12px' }}>
+                            {ft.pointsPerChar || 1}pt/文字
+                          </div>
+                          {ft.rating && (
+                            <div style={{ fontSize: '14px', color: '#6b7280' }}>
+                              ⭐ {ft.rating} ({ft.reviewCount || 0}件)
+                            </div>
+                          )}
+                          <button
+                            style={{
+                              width: '100%',
+                              padding: '10px',
+                              background: 'linear-gradient(to right, #ec4899, #a855f7)',
+                              color: 'white',
+                              borderRadius: '8px',
+                              border: 'none',
+                              cursor: 'pointer',
+                              fontSize: '14px',
+                              fontWeight: '600',
+                              marginTop: '12px'
+                            }}
+                          >
+                            💬 チャットを開始
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '48px' }}>
+                  <div style={{ fontSize: '64px', marginBottom: '16px' }}>🔮</div>
+                  <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1f2937', marginBottom: '8px' }}>
+                    占い師モード
+                  </h2>
+                  <p style={{ fontSize: '16px', color: '#6b7280' }}>
+                    お客様からのメッセージをお待ちしています
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      }
+      
+      // チャット画面
+      if (screen === 'chat' && selectedFortuneTeller) {
+        const pointsPerChar = selectedFortuneTeller?.pointsPerChar || 1;
+        const maxAllowedChars = currentUser.type === 'client' 
+          ? Math.min(Math.floor(currentUser.points / pointsPerChar), maxChars)
+          : maxChars;
+
+        return (
+          <div style={{ height: '100vh', background: '#f9fafb', display: 'flex', flexDirection: 'column' }}>
+            <div style={{
+              background: 'linear-gradient(to right, #ec4899, #a855f7)',
+              padding: '16px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+              flexShrink: 0
+            }}>
+              <div style={{ maxWidth: '800px', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <button
+                  onClick={() => {
+                    setScreen('lobby');
+                    setSelectedFortuneTeller(null);
+                    setCurrentChat(null);
+                  }}
+                  style={{
+                    background: 'rgba(255,255,255,0.2)',
+                    color: 'white',
+                    padding: '8px',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(255,255,255,0.3)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  ←
+                </button>
+                <div style={{ flex: 1 }}>
+                  <h2 style={{ fontSize: '18px', fontWeight: 'bold', color: 'white', marginBottom: '4px' }}>
+                    {selectedFortuneTeller.name}
+                  </h2>
+                  <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.9)' }}>
+                    {pointsPerChar}pt/文字
+                  </p>
+                </div>
+                {currentUser?.type === 'client' && (
+                  <div style={{
+                    background: 'rgba(255,255,255,0.2)',
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: 'white'
+                  }}>
+                    {currentUser.points}pt
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div style={{ 
+              flex: 1, 
+              overflowY: 'auto', 
+              padding: '16px', 
+              maxWidth: '800px', 
+              width: '100%', 
+              margin: '0 auto' 
+            }}>
+              {messages.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '48px', color: '#6b7280' }}>
+                  メッセージを送信して会話を開始しましょう
+                </div>
+              ) : (
+                messages.map((msg) => (
+                  <div
+                    key={msg.id}
+                    style={{
+                      marginBottom: '16px',
+                      display: 'flex',
+                      justifyContent: msg.senderId === currentUser.id ? 'flex-end' : 'flex-start'
+                    }}
+                  >
+                    <div
+                      style={{
+                        maxWidth: '70%',
+                        background: msg.senderId === currentUser.id ? '#ec4899' : 'white',
+                        color: msg.senderId === currentUser.id ? 'white' : '#1f2937',
+                        padding: '12px 16px',
+                        borderRadius: '12px',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                      }}
+                    >
+                      <div style={{ fontSize: '12px', marginBottom: '4px', opacity: 0.8 }}>
+                        {msg.senderName}
+                      </div>
+                      <div style={{ fontSize: '14px', whiteSpace: 'pre-wrap' }}>
+                        {msg.text}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+
+            <div style={{ 
+              background: 'white', 
+              padding: '16px', 
+              borderTop: '1px solid #e5e7eb', 
+              maxWidth: '800px', 
+              width: '100%', 
+              margin: '0 auto',
+              flexShrink: 0
+            }}>
+              {currentUser?.type === 'client' && currentUser.points < pointsPerChar && (
+                <div style={{
+                  background: '#fef2f2',
+                  border: '1px solid #fecaca',
+                  borderRadius: '8px',
+                  padding: '12px',
+                  marginBottom: '12px',
+                  fontSize: '14px',
+                  color: '#991b1b'
+                }}>
+                  ⚠️ ポイントが不足しています
+                  <button
+                    onClick={() => setScreen('purchase')}
+                    style={{
+                      marginLeft: '8px',
+                      background: '#ef4444',
+                      color: 'white',
+                      padding: '4px 12px',
+                      borderRadius: '4px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '12px'
+                    }}
+                  >
+                    ポイント購入
+                  </button>
+                </div>
+              )}
+              <div style={{ marginBottom: '8px', fontSize: '12px', color: '#6b7280', textAlign: 'right' }}>
+                {messageText.length}/{maxAllowedChars}文字 ({messageText.length * pointsPerChar}pt)
+              </div>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <textarea
+                  value={messageText}
+                  onChange={(e) => {
+                    if (e.target.value.length <= maxAllowedChars) {
+                      setMessageText(e.target.value);
+                    }
+                  }}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendMessage();
+                    }
+                  }}
+                  placeholder="メッセージを入力..."
+                  style={{
+                    flex: 1,
+                    padding: '12px 16px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    minHeight: '60px',
+                    resize: 'vertical',
+                    fontFamily: 'inherit'
+                  }}
+                />
+                <button
+                  onClick={handleSendMessage}
+                  disabled={!messageText.trim() || (currentUser.type === 'client' && currentUser.points < messageText.length * pointsPerChar)}
+                  style={{
+                    padding: '12px 20px',
+                    background: (messageText.trim() && (currentUser.type !== 'client' || currentUser.points >= messageText.length * pointsPerChar)) 
+                      ? 'linear-gradient(to right, #ec4899, #a855f7)' 
+                      : '#d1d5db',
+                    color: 'white',
+                    borderRadius: '8px',
+                    border: 'none',
+                    cursor: (messageText.trim() && (currentUser.type !== 'client' || currentUser.points >= messageText.length * pointsPerChar))
+                      ? 'pointer' 
+                      : 'not-allowed',
+                    fontSize: '14px',
+                    fontWeight: '600'
+                  }}
+                >
+                  送信
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      }
+      
+      return <div style={{ padding: '20px', textAlign: 'center' }}>画面: {screen}</div>;
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<FortuneServiceApp />);
+  </script>
+</body>
+</html>
