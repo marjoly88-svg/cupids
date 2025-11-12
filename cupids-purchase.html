@@ -349,7 +349,7 @@
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { getAuth } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-        import { getFirestore, doc, getDoc, updateDoc, setDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { getFirestore, doc, getDoc, updateDoc, setDoc, increment } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
         const firebaseConfig = {
             apiKey: "AIzaSyA52uJ31HzLkbz32lA-3WWSmhM10xYjjCg",
@@ -370,6 +370,7 @@
         window.firebaseGetDoc = getDoc;
         window.firebaseUpdateDoc = updateDoc;
         window.firebaseSetDoc = setDoc;
+        window.firebaseIncrement = increment;
 
         // Firebase初期化完了を通知
         window.firebaseReady = true;
@@ -475,15 +476,18 @@
                     return;
                 }
 
-                // ユーザーのポイントを更新（必ず数値として計算）
+                // ユーザーのポイントを更新（increment使用で安全に）
                 const userDocRef = window.firebaseDoc(window.firebaseDB, 'users', currentUser.uid);
-                const currentPoints = parseInt(currentUser.points) || 0;
-                const addPoints = parseInt(totalPoints) || 0;
-                const newPoints = currentPoints + addPoints;
-
+                const addPoints = Number(totalPoints) || 0;
+                
+                // Firebaseのincrement機能を使用（文字列連結を防ぐ）
                 await window.firebaseUpdateDoc(userDocRef, {
-                    points: newPoints
+                    points: window.firebaseIncrement(addPoints)
                 });
+                
+                // 更新後のポイントを取得
+                const updatedUserDoc = await window.firebaseGetDoc(userDocRef);
+                const newPoints = updatedUserDoc.data().points || 0;
 
                 // コードを使用済みにする
                 await window.firebaseUpdateDoc(codeDocRef, {
