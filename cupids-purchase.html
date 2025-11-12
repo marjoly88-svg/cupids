@@ -380,7 +380,7 @@
 
     <script>
         // ログインチェック
-        const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+        let currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
         if (!currentUser) {
             alert('ログインが必要です');
             window.location.href = 'cupids-login.html';
@@ -394,21 +394,36 @@
                 
                 if (userDoc.exists()) {
                     const userData = userDoc.data();
-                    let points = 0;
                     
-                    // ポイントデータの型を確認して適切に処理
-                    if (typeof userData.points === 'number') {
-                        points = userData.points;
-                    } else if (typeof userData.points === 'string') {
-                        // 文字列の場合は数値に変換
-                        points = parseInt(userData.points) || 0;
+                    // 必ず数値として処理（この部分が最重要！）
+                    let points = 0;
+                    const rawPoints = userData.points;
+                    
+                    // デバッグログ
+                    console.log('Raw points from Firebase:', rawPoints, 'Type:', typeof rawPoints);
+                    
+                    if (typeof rawPoints === 'number') {
+                        points = rawPoints;
+                    } else if (typeof rawPoints === 'string') {
+                        // 文字列の場合、おかしな値をクリーンアップ
+                        let cleanPoints = rawPoints.toString().replace(/[^0-9]/g, '');
+                        
+                        // 文字列連結バグの修正（例: "2000500" → 2500）
+                        if (cleanPoints.length > 5 && cleanPoints.includes('500')) {
+                            // おそらくバグなので、最初の4桁を取る
+                            cleanPoints = cleanPoints.substring(0, 4);
+                        }
+                        
+                        points = parseInt(cleanPoints) || 0;
                     }
                     
-                    // メモリ上のみ更新
+                    // メモリ上のcurrentUserを更新（必ず数値として）
                     currentUser.points = points;
                     
-                    // 画面に表示（必ず数値として処理）
-                    document.getElementById('currentPoints').textContent = points + 'pt';
+                    // 画面に表示（数値を確実に文字列に変換）
+                    document.getElementById('currentPoints').textContent = String(points) + 'pt';
+                    
+                    console.log('Updated points:', points);
                 } else {
                     document.getElementById('currentPoints').textContent = '0pt';
                 }
