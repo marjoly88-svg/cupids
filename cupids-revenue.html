@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>報酬確認 - キューピッズ</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans', sans-serif;
+            background: linear-gradient(135deg, #F9FAFB 0%, #E5E7EB 100%);
+            min-height: 100vh;
+            padding-bottom: 20px;
+        }
+
+        /* ヘッダー */
+        .header {
+            background: white;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .back-button {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .header-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        /* コンテンツ */
+        .container {
+            max-width: 1024px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* セクション */
+        .section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        /* 月選択 */
+        .month-selector {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .month-select {
+            padding: 12px 24px;
+            border-radius: 8px;
+            border: 2px solid #EC4899;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            background: white;
+        }
+
+        /* 報酬カード */
+        .revenue-card {
+            background: linear-gradient(135deg, #EC4899, #A855F7);
+            padding: 20px;
+            border-radius: 12px;
+            color: white;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .revenue-label {
+            font-size: 14px;
+            margin-bottom: 4px;
+            opacity: 0.9;
+        }
+
+        .revenue-amount {
+            font-size: 36px;
+            font-weight: bold;
+            margin-bottom: 12px;
+        }
+
+        .revenue-rate {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .revenue-rate-value {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        /* 報酬率プログレスバー */
+        .revenue-progress-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .progress-label {
+            font-size: 13px;
+            margin-bottom: 10px;
+            opacity: 0.9;
+            text-align: left;
+        }
+
+        .progress-bar-container {
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+            height: 24px;
+            overflow: hidden;
+            margin-bottom: 10px;
+            position: relative;
+        }
+
+        .progress-bar {
+            background: linear-gradient(to right, #ffffff, #f0f0f0);
+            height: 100%;
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            color: #EC4899;
+        }
+
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .next-tier-info {
+            margin-top: 12px;
+            padding: 12px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 8px;
+            font-size: 13px;
+        }
+
+        .next-tier-amount {
+            font-size: 18px;
+            font-weight: bold;
+            margin: 5px 0;
+        }
+
+        /* カレンダー */
+        .calendar-header {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+            margin-bottom: 8px;
+        }
+
+        .calendar-day-name {
+            text-align: center;
+            padding: 8px;
+            font-weight: bold;
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+            margin-bottom: 20px;
+        }
+
+        .calendar-day {
+            padding: 12px 4px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+            min-height: 60px;
+        }
+
+        .calendar-day:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .calendar-day.has-sales {
+            background: #FEF3F6;
+        }
+
+        .calendar-day.selected {
+            border: 2px solid #EC4899;
+            background: #FCE7F3;
+        }
+
+        .calendar-day.empty {
+            background: transparent;
+            border: none;
+            cursor: default;
+        }
+
+        .calendar-day-number {
+            font-size: 16px;
+            font-weight: bold;
+            color: #1f2937;
+            margin-bottom: 4px;
+        }
+
+        .calendar-day-sales {
+            font-size: 11px;
+            color: #EC4899;
+            font-weight: 600;
+        }
+
+        /* 日別詳細 */
+        .day-detail {
+            background: #f9fafb;
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .day-detail-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #1f2937;
+            margin-bottom: 12px;
+        }
+
+        .sale-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .sale-item:last-child {
+            border-bottom: none;
+        }
+
+        .sale-client {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .sale-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #EC4899, #A855F7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .sale-name {
+            font-size: 14px;
+            color: #1f2937;
+        }
+
+        .sale-amount {
+            font-size: 16px;
+            font-weight: bold;
+            color: #1f2937;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+            font-size: 14px;
+        }
+
+        /* ローディング */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <!-- ヘッダー -->
+    <div class="header">
+        <button class="back-button" onclick="goBack()">←</button>
+        <div class="header-title">報酬確認</div>
+    </div>
+
+    <div class="container">
+        <div class="section">
+            <!-- 月選択 -->
+            <div class="month-selector">
+                <select id="monthSelect" class="month-select">
+                    <!-- JavaScriptで動的に生成 -->
+                </select>
+            </div>
+
+            <!-- 今月の報酬 -->
+            <div class="revenue-card">
+                <div class="revenue-label">今月の報酬</div>
+                <div class="revenue-amount" id="revenueAmount">¥0</div>
+                <div class="revenue-rate">
+                    <span>現在の報酬率</span>
+                    <span class="revenue-rate-value" id="revenueRate">30%</span>
+                </div>
+
+                <!-- 報酬率プログレス -->
+                <div class="revenue-progress-section">
+                    <div class="progress-label">次の報酬率までの進捗</div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" id="progressBar" style="width: 0%;">
+                            <span id="progressPercent">0%</span>
+                        </div>
+                    </div>
+                    <div class="progress-info">
+                        <span id="nextTierGoal">目標: ¥100,000</span>
+                    </div>
+                    <div class="next-tier-info" id="nextTierInfo">
+                        <div>💎 40%報酬率まで</div>
+                        <div class="next-tier-amount" id="remainingAmount">あと ¥100,000</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- カレンダー -->
+            <div class="calendar-header">
+                <div class="calendar-day-name">月</div>
+                <div class="calendar-day-name">火</div>
+                <div class="calendar-day-name">水</div>
+                <div class="calendar-day-name">木</div>
+                <div class="calendar-day-name">金</div>
+                <div class="calendar-day-name">土</div>
+                <div class="calendar-day-name">日</div>
+            </div>
+            <div class="calendar-grid" id="calendarGrid">
+                <div class="loading">読み込み中...</div>
+            </div>
+
+            <!-- 選択された日の詳細 -->
+            <div id="dayDetail" style="display: none;">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ログインチェック
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+        if (!currentUser || currentUser.type !== 'fortune-teller') {
+            alert('占い師としてログインしてください');
+            window.location.href = 'cupids-login.html';
+        }
+
+        let selectedMonth = '';
+        let selectedDate = null;
+        let revenueData = {};
+        let fortuneTellerData = {};
+
+        // 月のリストを生成（過去6ヶ月）
+        function generateMonths() {
+            const months = [];
+            const now = new Date();
+            for (let i = 0; i < 6; i++) {
+                const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                const yearMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                months.push(yearMonth);
+            }
+            return months;
+        }
+
+        // 月選択のドロップダウンを生成
+        function initMonthSelector() {
+            const months = generateMonths();
+            selectedMonth = months[0];
+
+            const select = document.getElementById('monthSelect');
+            months.forEach(month => {
+                const option = document.createElement('option');
+                option.value = month;
+                const [year, m] = month.split('-');
+                option.textContent = `${year}年${m}月`;
+                select.appendChild(option);
+            });
+
+            select.value = selectedMonth;
+            select.addEventListener('change', (e) => {
+                selectedMonth = e.target.value;
+                selectedDate = null;
+                loadRevenue();
+            });
+        }
+
+        // 報酬率を計算（簡略版: 10万円以上で40%）
+        // 前月の手取りから次月の報酬率を計算
+        function calculateNextMonthCommissionRate(previousRevenue) {
+            if (previousRevenue < 30000) {
+                return 30;
+            } else if (previousRevenue < 90000) {
+                return 32;
+            } else if (previousRevenue < 150000) {
+                return 34;
+            } else if (previousRevenue < 210000) {
+                return 36;
+            } else if (previousRevenue < 270000) {
+                return 38;
+            } else {
+                return 40;
+            }
+        }
+
+        // 現在の売上から今月の報酬率を計算（固定報酬率がない場合）
+        function calculateCommissionRate(totalSales, previousMonthRevenue = 0) {
+            // 前月の手取りから報酬率を決定
+            return calculateNextMonthCommissionRate(previousMonthRevenue) / 100;
+        }
+
+        // 次の段階までの情報を取得
+        function getTierInfo(currentRevenue, currentRate) {
+            const tiers = [
+                { threshold: 30000, rate: 32 },
+                { threshold: 90000, rate: 34 },
+                { threshold: 150000, rate: 36 },
+                { threshold: 210000, rate: 38 },
+                { threshold: 270000, rate: 40 }
+            ];
+            
+            const currentRatePercent = currentRate * 100;
+            
+            // 次のティアを探す
+            for (let tier of tiers) {
+                if (currentRevenue < tier.threshold) {
+                    return {
+                        currentRate: currentRate,
+                        nextRate: tier.rate / 100,
+                        nextThreshold: tier.threshold,
+                        remaining: tier.threshold - currentRevenue,
+                        progress: (currentRevenue / tier.threshold) * 100
+                    };
+                }
+            }
+            
+            // 最高ランク達成
+            return {
+                currentRate: currentRate,
+                nextRate: currentRate,
+                nextThreshold: 270000,
+                remaining: 0,
+                progress: 100,
+                maxTier: true
+            };
+        }
+
+        // プログレスバーを更新
+        function updateProgressBar(totalSales, currentRevenue, currentRate) {
+            const tierInfo = getTierInfo(currentRevenue, currentRate);
+            
+            // 現在の報酬率を表示
+            document.getElementById('revenueRate').textContent = `${(tierInfo.currentRate * 100).toFixed(0)}%`;
+            
+            if (tierInfo.maxTier) {
+                // 最高ランク達成
+                document.getElementById('progressBar').style.width = '100%';
+                document.getElementById('progressPercent').textContent = '100%';
+                document.getElementById('nextTierGoal').textContent = '🎉 最高ランク達成!';
+                document.getElementById('nextTierInfo').innerHTML = `
+                    <div style="font-size: 15px; font-weight: bold;">おめでとうございます!</div>
+                    <div class="next-tier-amount">来月も${(tierInfo.currentRate * 100).toFixed(0)}%の報酬率です</div>
+                `;
+            } else {
+                // 次の段階まで表示
+                document.getElementById('progressBar').style.width = `${tierInfo.progress}%`;
+                document.getElementById('progressPercent').textContent = `${tierInfo.progress.toFixed(0)}%`;
+                document.getElementById('nextTierGoal').textContent = `次のランク: ${(tierInfo.nextRate * 100).toFixed(0)}%`;
+                document.getElementById('nextTierInfo').innerHTML = `
+                    <div style="font-size: 14px; margin-bottom: 5px;">💫 ${(tierInfo.nextRate * 100).toFixed(0)}%まであと</div>
+                    <div class="next-tier-amount" style="color: #FFF; font-size: 24px;">¥${tierInfo.remaining.toLocaleString()}</div>
+                    <div style="font-size: 12px; margin-top: 5px; opacity: 0.9;">目標報酬: ¥${tierInfo.nextThreshold.toLocaleString()}</div>
+                `;
+            }
+        }
+
+        // 占い師データと報酬を読み込み
+        async function loadRevenue() {
+            try {
+                // 占い師データを取得
+                const ftRef = window.firebaseDoc(window.firebaseDB, 'fortuneTellers', currentUser.uid);
+                const ftDoc = await window.firebaseGetDoc(ftRef);
+
+                if (ftDoc.exists()) {
+                    fortuneTellerData = ftDoc.data();
+                    
+                    // 今月の売上総額と報酬を計算
+                    const currentSales = fortuneTellerData.currentMonthSales || 0;
+                    const previousMonthRevenue = fortuneTellerData.previousMonthRevenue || 0;
+                    
+                    // 固定報酬率がある場合はそれを使用、なければ前月実績から計算
+                    let currentRate;
+                    if (fortuneTellerData.fixedCommissionRate) {
+                        currentRate = fortuneTellerData.fixedCommissionRate / 100;
+                    } else {
+                        currentRate = calculateCommissionRate(currentSales, previousMonthRevenue);
+                    }
+                    
+                    const currentRevenue = currentSales * currentRate;
+                    
+                    // 報酬額を表示
+                    document.getElementById('revenueAmount').textContent = '¥' + Math.floor(currentRevenue).toLocaleString();
+                    
+                    // プログレスバーを更新（固定報酬率の場合は表示を変更）
+                    if (fortuneTellerData.fixedCommissionRate) {
+                        // 固定報酬率の場合は特別表示
+                        document.getElementById('revenueRate').textContent = `${fortuneTellerData.fixedCommissionRate}%`;
+                        document.getElementById('progressBar').style.width = '100%';
+                        document.getElementById('progressPercent').textContent = '固定';
+                        document.getElementById('nextTierGoal').textContent = '管理者により固定';
+                        document.getElementById('nextTierInfo').innerHTML = `
+                            <div>🔒 報酬率固定中</div>
+                            <div class="next-tier-amount">管理者設定: ${fortuneTellerData.fixedCommissionRate}%</div>
+                        `;
+                    } else {
+                        updateProgressBar(currentSales, currentRevenue, currentRate);
+                    }
+                }
+
+                // 選択された月の報酬履歴を取得（Firestoreから）
+                // 注: 実際の実装では、revenuesコレクションから該当月のデータを取得
+                // ここではデモとして空のデータを表示
+                revenueData = {};
+                
+                renderCalendar();
+
+            } catch (error) {
+                console.error('報酬読み込みエラー:', error);
+                alert('報酬情報の読み込みに失敗しました');
+            }
+        }
+
+        // カレンダーを描画
+        function renderCalendar() {
+            const [year, month] = selectedMonth.split('-').map(Number);
+            const daysInMonth = new Date(year, month, 0).getDate();
+            const firstDayOfMonth = new Date(year, month - 1, 1).getDay();
+            const adjustedFirstDay = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
+
+            const calendarGrid = document.getElementById('calendarGrid');
+            calendarGrid.innerHTML = '';
+
+            // 空白セルを追加
+            for (let i = 0; i < adjustedFirstDay; i++) {
+                const emptyDay = document.createElement('div');
+                emptyDay.className = 'calendar-day empty';
+                calendarGrid.appendChild(emptyDay);
+            }
+
+            // 日付セルを追加
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayElement = document.createElement('div');
+                dayElement.className = 'calendar-day';
+                
+                const dateKey = `${selectedMonth}-${String(day).padStart(2, '0')}`;
+                const daySales = getDaySales(dateKey);
+
+                if (daySales > 0) {
+                    dayElement.classList.add('has-sales');
+                }
+
+                if (selectedDate === day) {
+                    dayElement.classList.add('selected');
+                }
+
+                dayElement.innerHTML = `
+                    <div class="calendar-day-number">${day}</div>
+                    ${daySales > 0 ? `<div class="calendar-day-sales">${daySales.toLocaleString()}円</div>` : ''}
+                `;
+
+                dayElement.onclick = () => selectDate(day);
+                calendarGrid.appendChild(dayElement);
+            }
+
+            // 日別詳細を更新
+            updateDayDetail();
+        }
+
+        // その日の売上合計を取得
+        function getDaySales(dateKey) {
+            const sales = revenueData[dateKey];
+            if (!sales) return 0;
+            return sales.reduce((sum, sale) => sum + sale.amount, 0);
+        }
+
+        // 日付を選択
+        function selectDate(day) {
+            selectedDate = day;
+            renderCalendar();
+        }
+
+        // 日別詳細を更新
+        function updateDayDetail() {
+            const dayDetail = document.getElementById('dayDetail');
+            
+            if (!selectedDate) {
+                dayDetail.style.display = 'none';
+                return;
+            }
+
+            const dateKey = `${selectedMonth}-${String(selectedDate).padStart(2, '0')}`;
+            const sales = revenueData[dateKey] || [];
+
+            if (sales.length === 0) {
+                dayDetail.style.display = 'none';
+                return;
+            }
+
+            dayDetail.style.display = 'block';
+            const [year, month] = selectedMonth.split('-');
+            
+            let html = `
+                <div class="day-detail">
+                    <div class="day-detail-title">${year}年${month}月${selectedDate}日</div>
+            `;
+
+            sales.forEach(sale => {
+                html += `
+                    <div class="sale-item">
+                        <div class="sale-client">
+                            <div class="sale-avatar">${sale.clientName[0]}</div>
+                            <span class="sale-name">${sale.clientName}</span>
+                        </div>
+                        <span class="sale-amount">${sale.amount.toLocaleString()}円</span>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+            dayDetail.innerHTML = html;
+        }
+
+        function goBack() {
+            window.location.href = 'cupids-fortune-lobby.html';
+        }
+    </script>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getFirestore, doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyA52uJ31HzLkbz32lA-3WWSmhM10xYjjCg",
+            authDomain: "cupids-chat.firebaseapp.com",
+            projectId: "cupids-chat",
+            storageBucket: "cupids-chat.firebasestorage.app",
+            messagingSenderId: "44532110483",
+            appId: "1:44532110483:web:d6266e8abba8582b8b6966"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        window.firebaseAuth = auth;
+        window.firebaseDB = db;
+        window.firebaseDoc = doc;
+        window.firebaseGetDoc = getDoc;
+
+        // Firebase初期化完了を通知
+        window.firebaseReady = true;
+        window.dispatchEvent(new Event('firebaseReady'));
+        console.log('✅ Firebase初期化完了!');
+
+        // Firebase初期化を待ってから実行
+        function initializePage() {
+            if (!window.firebaseReady) {
+                window.addEventListener('firebaseReady', initializePage, { once: true });
+                return;
+            }
+            
+            console.log('🚀 報酬画面初期化開始...');
+            initMonthSelector();
+            loadRevenue();
+        }
+        
+        // ページ読み込み完了後に初期化
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializePage);
+        } else {
+            initializePage();
+        }
+    </script>
+</body>
+</html>

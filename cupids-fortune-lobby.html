@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ダッシュボード - キューピッズ占い師</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans', sans-serif;
+            background: #F5F5F5;
+            min-height: 100vh;
+            padding-bottom: 20px;
+        }
+
+        /* ヘッダー */
+        .header {
+            background: linear-gradient(to right, #EC4899, #A855F7);
+            padding: 15px 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header-content {
+            max-width: 1024px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-logo {
+            height: 40px;
+            width: auto;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-name {
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .header-button {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .header-button:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        /* コンテナ */
+        .container {
+            max-width: 1024px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* 待機状態セクション */
+        .status-section {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .status-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 12px;
+        }
+
+        .status-buttons {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+
+        .status-button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .status-button.active.available {
+            background: linear-gradient(to right, #10b981, #059669);
+            color: white;
+        }
+
+        .status-button.active.accepting {
+            background: linear-gradient(to right, #3b82f6, #2563eb);
+            color: white;
+        }
+
+        .status-button.active.stopped {
+            background: linear-gradient(to right, #6b7280, #4b5563);
+            color: white;
+        }
+
+        .status-button.inactive {
+            background: #e5e7eb;
+            color: #6b7280;
+        }
+
+        .status-info {
+            font-size: 13px;
+            color: #6b7280;
+        }
+
+        .status-info strong {
+            color: #333;
+        }
+
+        /* お客様一覧 */
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .client-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .client-item {
+            background: white;
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .client-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .client-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .client-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            flex-shrink: 0;
+            position: relative;
+        }
+
+        /* 未読バッジ */
+        .unread-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background: #EF4444;
+            color: white;
+            font-size: 11px;
+            font-weight: bold;
+            min-width: 20px;
+            height: 20px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 6px;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .client-info {
+            flex: 1;
+        }
+
+        .client-name {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .client-points {
+            font-size: 12px;
+            color: #EC4899;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .client-message {
+            font-size: 14px;
+            color: #6b7280;
+        }
+
+        .no-clients {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+            font-size: 14px;
+        }
+
+        /* ローディング */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <!-- ヘッダー -->
+    <div class="header">
+        <div class="header-content">
+            <div>
+                <span class="header-name" id="fortuneTellerName">読み込み中...</span>
+            </div>
+            <div class="header-actions">
+                <button class="header-button" onclick="goToBlockList()">🚫 ブロックリスト</button>
+                <button class="header-button" onclick="goToProfileEdit()">📝 プロフ編集</button>
+                <button class="header-button" onclick="goToRevenue()">💰 報酬確認</button>
+                <button class="header-button" onclick="logout()">ログアウト</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- 待機状態 -->
+        <div class="status-section">
+            <div class="status-title">⏰ 待機状態</div>
+            <div class="status-buttons">
+                <button class="status-button inactive" id="statusAvailable" onclick="changeStatus('available')">
+                    今すぐ占う
+                </button>
+                <button class="status-button inactive" id="statusAccepting" onclick="changeStatus('accepting')">
+                    鑑定受付中
+                </button>
+                <button class="status-button inactive" id="statusStopped" onclick="changeStatus('stopped')">
+                    鑑定停止
+                </button>
+            </div>
+            <div class="status-info">
+                現在の状態: <strong id="statusText">-</strong>
+            </div>
+        </div>
+
+        <!-- お客様一覧 -->
+        <div class="section-title">💬 お客様一覧</div>
+        <div class="client-list" id="clientList">
+            <div class="loading">読み込み中...</div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyA52uJ31HzLkbz32lA-3WWSmhM10xYjjCg",
+            authDomain: "cupids-chat.firebaseapp.com",
+            projectId: "cupids-chat",
+            storageBucket: "cupids-chat.firebasestorage.app",
+            messagingSenderId: "44532110483",
+            appId: "1:44532110483:web:d6266e8abba8582b8b6966"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        window.firebaseAuth = auth;
+        window.firebaseDB = db;
+        window.firebaseDoc = doc;
+        window.firebaseGetDoc = getDoc;
+        window.firebaseSetDoc = setDoc;
+        window.firebaseUpdateDoc = updateDoc;
+        window.firebaseCollection = collection;
+        window.firebaseQuery = query;
+        window.firebaseWhere = where;
+        window.firebaseGetDocs = getDocs;
+
+        // Firebase初期化完了を通知
+        window.firebaseReady = true;
+        window.dispatchEvent(new Event('firebaseReady'));
+        console.log('✅ Firebase初期化完了!');
+    </script>
+
+    <script>
+        // ログインチェック
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+        if (!currentUser || currentUser.type !== 'fortune-teller') {
+            alert('占い師としてログインしてください');
+            window.location.href = 'cupids-login.html';
+        }
+
+        let fortuneTellerData = {};
+
+        // 月次売上をリセット
+        async function checkAndResetMonthly() {
+            try {
+                const now = new Date();
+                const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                
+                const ftRef = window.firebaseDoc(window.firebaseDB, 'fortuneTellers', currentUser.uid);
+                const ftDoc = await window.firebaseGetDoc(ftRef);
+
+                if (ftDoc.exists()) {
+                    const data = ftDoc.data();
+                    const lastResetMonth = data.lastResetMonth || '';
+
+                    // 月が変わっていたら売上をリセット
+                    if (lastResetMonth !== currentMonth) {
+                        // 前月の売上と報酬率から手取りを計算
+                        const previousSales = data.currentMonthSales || 0;
+                        const previousRevenue = data.previousMonthRevenue || 0;
+                        
+                        // 固定報酬率がない場合、前月の手取りから今月の報酬率を決定
+                        let newCommissionRate = 30; // デフォルト30%
+                        if (!data.fixedCommissionRate) {
+                            if (previousRevenue >= 270000) {
+                                newCommissionRate = 40;
+                            } else if (previousRevenue >= 210000) {
+                                newCommissionRate = 38;
+                            } else if (previousRevenue >= 150000) {
+                                newCommissionRate = 36;
+                            } else if (previousRevenue >= 90000) {
+                                newCommissionRate = 34;
+                            } else if (previousRevenue >= 30000) {
+                                newCommissionRate = 32;
+                            }
+                        }
+                        
+                        await window.firebaseUpdateDoc(ftRef, {
+                            currentMonthSales: 0,
+                            lastResetMonth: currentMonth,
+                            previousMonthSales: previousSales,
+                            previousMonthRevenue: previousRevenue,
+                            currentCommissionRate: data.fixedCommissionRate || newCommissionRate
+                        });
+                        
+                        console.log('月次売上をリセットしました:', currentMonth, '新報酬率:', newCommissionRate + '%');
+                    }
+                }
+            } catch (error) {
+                console.error('月次リセットエラー:', error);
+            }
+        }
+
+        // 占い師データを読み込み
+        async function loadFortuneTellerData() {
+            try {
+                // まず月次リセットをチェック
+                await checkAndResetMonthly();
+                
+                const ftRef = window.firebaseDoc(window.firebaseDB, 'fortuneTellers', currentUser.uid);
+                const ftDoc = await window.firebaseGetDoc(ftRef);
+
+                if (ftDoc.exists()) {
+                    fortuneTellerData = ftDoc.data();
+                    document.getElementById('fortuneTellerName').textContent = fortuneTellerData.name + 'さん';
+                    
+                    // ステータスボタンを更新
+                    updateStatusButtons();
+                    
+                    // ローディング表示を消す
+                    document.body.style.opacity = '1';
+                } else {
+                    // Firebaseにデータがない場合
+                    console.log('占い師データが見つかりません');
+                    document.body.style.opacity = '1';
+                    // デフォルト値で画面を表示
+                    fortuneTellerData = {
+                        name: currentUser.name || '占い師',
+                        status: 'stopped'
+                    };
+                    document.getElementById('fortuneTellerName').textContent = fortuneTellerData.name + 'さん';
+                    updateStatusButtons();
+                }
+            } catch (error) {
+                console.error('データ読み込みエラー:', error);
+                // エラーでもローディング表示を消す
+                document.body.style.opacity = '1';
+                // デフォルト値で画面を表示（エラーメッセージは出さない）
+                fortuneTellerData = {
+                    name: currentUser.name || '占い師',
+                    status: 'stopped'
+                };
+                document.getElementById('fortuneTellerName').textContent = fortuneTellerData.name + 'さん';
+                updateStatusButtons();
+            }
+        }
+
+        // ステータスボタンを更新
+        function updateStatusButtons() {
+            const status = fortuneTellerData.status || 'stopped';
+            
+            // すべてのボタンをinactiveに
+            document.querySelectorAll('.status-button').forEach(btn => {
+                btn.className = 'status-button inactive';
+            });
+
+            // 現在のステータスをactiveに
+            if (status === 'available') {
+                document.getElementById('statusAvailable').className = 'status-button active available';
+                document.getElementById('statusText').textContent = '今すぐ占う（すぐ返信できる方のみ）';
+            } else if (status === 'accepting') {
+                document.getElementById('statusAccepting').className = 'status-button active accepting';
+                document.getElementById('statusText').textContent = '鑑定受付中（24時間以内に返信）';
+            } else if (status === 'stopped') {
+                document.getElementById('statusStopped').className = 'status-button active stopped';
+                document.getElementById('statusText').textContent = '鑑定停止中';
+            }
+        }
+
+        // ステータスを変更
+        async function changeStatus(newStatus) {
+            try {
+                const ftRef = window.firebaseDoc(window.firebaseDB, 'fortuneTellers', currentUser.uid);
+                
+                // setDocのmergeオプションを使用（ドキュメントがない場合は作成、ある場合は更新）
+                await window.firebaseSetDoc(ftRef, {
+                    status: newStatus
+                }, { merge: true });
+
+                fortuneTellerData.status = newStatus;
+                updateStatusButtons();
+
+                let message = '';
+                if (newStatus === 'available') {
+                    message = '✨ 待機を開始しました。すぐ返信できる方のみ待機お願いします';
+                } else if (newStatus === 'accepting') {
+                    message = '✅ 鑑定を受け付けます。24時間以内に返信可能の方のみ受付中にしてください';
+                } else if (newStatus === 'stopped') {
+                    message = '⏸️ しばらく鑑定を受けられない場合に押してください';
+                }
+                
+                if (message) {
+                    alert(message);
+                }
+
+            } catch (error) {
+                console.error('ステータス更新エラー:', error);
+                alert('ステータスの更新に失敗しました');
+            }
+        }
+
+        // お客様一覧を読み込み
+        async function loadClientList() {
+            try {
+                const clientList = document.getElementById('clientList');
+                
+                // Firestoreから自分が参加している会話を取得
+                const conversationsRef = window.firebaseCollection(window.firebaseDB, 'conversations');
+                const q = window.firebaseQuery(
+                    conversationsRef,
+                    window.firebaseWhere('fortuneTellerId', '==', currentUser.uid)
+                );
+                
+                const querySnapshot = await window.firebaseGetDocs(q);
+                
+                if (querySnapshot.empty) {
+                    clientList.innerHTML = `
+                        <div class="no-clients">
+                            <p style="margin-bottom: 15px;">まだお客様とのチャットがありません</p>
+                            <button onclick="showDemoChat()" style="
+                                background: linear-gradient(to right, #EC4899, #A855F7);
+                                color: white;
+                                border: none;
+                                padding: 12px 24px;
+                                border-radius: 10px;
+                                font-size: 14px;
+                                font-weight: 600;
+                                cursor: pointer;
+                                transition: all 0.2s;
+                                box-shadow: 0 2px 10px rgba(236, 72, 153, 0.3);
+                            " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                                📱 デモチャットを表示
+                            </button>
+                            <p style="margin-top: 10px; font-size: 12px; color: #999;">デモチャットで画面を確認できます</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                clientList.innerHTML = '';
+                
+                for (const docSnapshot of querySnapshot.docs) {
+                    const conv = docSnapshot.data();
+                    
+                    // お客様情報を取得
+                    const clientDoc = await window.firebaseGetDoc(
+                        window.firebaseDoc(window.firebaseDB, 'users', conv.clientId)
+                    );
+                    
+                    if (clientDoc.exists()) {
+                        const client = clientDoc.data();
+                        
+                        // 未読メッセージ数を取得
+                        const unreadCount = await getUnreadCount(docSnapshot.id);
+                        
+                        const item = document.createElement('div');
+                        item.className = 'client-item';
+                        item.onclick = () => goToChat(docSnapshot.id, conv.clientId);
+                        
+                        const lastMessage = conv.lastMessage || 'まだメッセージがありません';
+                        
+                        // 未読バッジのHTML（未読がある場合のみ表示）
+                        const unreadBadge = unreadCount > 0 ? `<div class="unread-badge">${unreadCount}</div>` : '';
+                        
+                        item.innerHTML = `
+                            <div class="client-header">
+                                <div class="client-avatar">
+                                    ${client.name ? client.name[0] : '?'}
+                                    ${unreadBadge}
+                                </div>
+                                <div class="client-info">
+                                    <div class="client-name">${client.name || '名前未設定'}</div>
+                                    <div class="client-points">所持ポイント: ${client.points || 0}pt</div>
+                                    <div class="client-message">${lastMessage.substring(0, 50)}${lastMessage.length > 50 ? '...' : ''}</div>
+                                </div>
+                            </div>
+                        `;
+                        
+                        clientList.appendChild(item);
+                    }
+                }
+                
+            } catch (error) {
+                console.error('お客様一覧読み込みエラー:', error);
+                document.getElementById('clientList').innerHTML = '<div class="no-clients">お客様一覧の読み込みに失敗しました</div>';
+            }
+        }
+
+        // 未読メッセージ数を取得
+        async function getUnreadCount(conversationId) {
+            try {
+                const messagesRef = window.firebaseCollection(window.firebaseDB, 'messages');
+                // シンプルなクエリに変更（インデックスエラー回避）
+                const q = window.firebaseQuery(
+                    messagesRef,
+                    window.firebaseWhere('conversationId', '==', conversationId)
+                );
+                
+                const snapshot = await window.firebaseGetDocs(q);
+                
+                // クライアント側でフィルタリング
+                let unreadCount = 0;
+                snapshot.forEach(doc => {
+                    const msg = doc.data();
+                    if (msg.senderId !== currentUser.uid && msg.isRead === false) {
+                        unreadCount++;
+                    }
+                });
+                
+                return unreadCount;
+            } catch (error) {
+                console.error('未読数取得エラー:', error);
+                return 0;
+            }
+        }
+
+        function goToProfileEdit() {
+            window.location.href = 'cupids-profile-edit.html';
+        }
+
+        function goToRevenue() {
+            window.location.href = 'cupids-revenue.html';
+        }
+
+        function goToChat(conversationId, clientId) {
+            localStorage.setItem('selectedConversationId', conversationId);
+            if (clientId) {
+                localStorage.setItem('selectedClientId', clientId);
+            }
+            window.location.href = 'cupids-chat-v2.html';
+        }
+
+        // デモチャットを表示
+        function showDemoChat() {
+            const clientList = document.getElementById('clientList');
+            clientList.innerHTML = '';
+            
+            // デモチャット1: アクティブな会話
+            const demoItem1 = document.createElement('div');
+            demoItem1.className = 'client-item';
+            demoItem1.style.opacity = '0.7';
+            demoItem1.style.pointerEvents = 'none';
+            demoItem1.innerHTML = `
+                <div class="client-header">
+                    <div class="client-avatar">
+                        佐
+                        <div class="unread-badge">3</div>
+                    </div>
+                    <div class="client-info">
+                        <div class="client-name">佐藤 花子</div>
+                        <div class="client-points">所持ポイント: 500pt</div>
+                        <div class="client-message">ありがとうございます!またよろしくお願いします✨</div>
+                    </div>
+                </div>
+            `;
+            clientList.appendChild(demoItem1);
+            
+            // デモチャット2: 進行中の会話
+            const demoItem2 = document.createElement('div');
+            demoItem2.className = 'client-item';
+            demoItem2.style.opacity = '0.7';
+            demoItem2.style.pointerEvents = 'none';
+            demoItem2.innerHTML = `
+                <div class="client-header">
+                    <div class="client-avatar">
+                        田
+                        <div class="unread-badge">1</div>
+                    </div>
+                    <div class="client-info">
+                        <div class="client-name">田中 太郎</div>
+                        <div class="client-points">所持ポイント: 1200pt</div>
+                        <div class="client-message">仕事について相談したいのですが...</div>
+                    </div>
+                </div>
+            `;
+            clientList.appendChild(demoItem2);
+            
+            // デモチャット3: 過去の会話
+            const demoItem3 = document.createElement('div');
+            demoItem3.className = 'client-item';
+            demoItem3.style.opacity = '0.7';
+            demoItem3.style.pointerEvents = 'none';
+            demoItem3.innerHTML = `
+                <div class="client-header">
+                    <div class="client-avatar">山</div>
+                    <div class="client-info">
+                        <div class="client-name">山田 美咲</div>
+                        <div class="client-points">所持ポイント: 300pt</div>
+                        <div class="client-message">占っていただいてありがとうございました!</div>
+                    </div>
+                </div>
+            `;
+            clientList.appendChild(demoItem3);
+            
+            // 注意書きを追加
+            const notice = document.createElement('div');
+            notice.style.cssText = `
+                background: #FFF3CD;
+                border: 1px solid #FFE69C;
+                border-radius: 10px;
+                padding: 12px;
+                margin-top: 15px;
+                font-size: 13px;
+                color: #856404;
+                text-align: center;
+            `;
+            notice.innerHTML = '⚠️ これはデモ表示です。実際のお客様ではありません。';
+            clientList.appendChild(notice);
+            
+            // 戻るボタンを追加
+            const backButton = document.createElement('button');
+            backButton.textContent = '🔄 実際の一覧に戻る';
+            backButton.style.cssText = `
+                background: white;
+                color: #EC4899;
+                border: 2px solid #EC4899;
+                padding: 10px 20px;
+                border-radius: 10px;
+                font-size: 14px;
+                font-weight: 600;
+                cursor: pointer;
+                margin-top: 10px;
+                width: 100%;
+                transition: all 0.2s;
+            `;
+            backButton.onmouseover = function() { this.style.background = '#FDF2F8'; };
+            backButton.onmouseout = function() { this.style.background = 'white'; };
+            backButton.onclick = loadClientList;
+            clientList.appendChild(backButton);
+        }
+
+        function logout() {
+            localStorage.removeItem('currentUser');
+            window.location.href = 'cupids-fortune-login.html';
+        }
+        
+        function goToBlockList() {
+            window.location.href = 'cupids-block-list.html';
+        }
+
+        // Firebase初期化を待ってから実行
+        async function initializePage() {
+            if (!window.firebaseReady) {
+                // Firebaseがまだ準備できていない場合は、イベントを待つ
+                window.addEventListener('firebaseReady', initializePage, { once: true });
+                return;
+            }
+            
+            console.log('🚀 占い師ロビー初期化開始...');
+            
+            // 占い師データを読み込み
+            await loadFortuneTellerData();
+            
+            // お客様一覧を読み込み
+            loadClientList();
+        }
+        
+        // ページ読み込み完了後に初期化
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializePage);
+        } else {
+            initializePage();
+        }
+    </script>
+</body>
+</html>

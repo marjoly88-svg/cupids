@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>マイページ - キューピッズ</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans', sans-serif;
+            background: linear-gradient(135deg, #FFE5F0 0%, #E5E5FF 100%);
+            min-height: 100vh;
+            padding-bottom: 20px;
+        }
+
+        /* ヘッダー */
+        .header {
+            background: white;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .back-button {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .header-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        /* コンテンツ */
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* プロフィールカード */
+        .profile-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .profile-header {
+            margin-bottom: 20px;
+        }
+
+        .profile-info {
+            flex: 1;
+        }
+
+        .profile-name {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .profile-email {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .profile-detail {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .profile-detail:last-child {
+            border-bottom: none;
+        }
+
+        .profile-detail-label {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .profile-detail-value {
+            font-size: 14px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        /* ポイントカード */
+        .points-card {
+            background: linear-gradient(135deg, #FF69B4, #9370DB);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(255,105,180,0.3);
+            text-align: center;
+        }
+
+        .points-label {
+            font-size: 14px;
+            color: rgba(255,255,255,0.9);
+            margin-bottom: 10px;
+        }
+
+        .points-value {
+            font-size: 48px;
+            font-weight: bold;
+            color: white;
+            margin-bottom: 20px;
+        }
+
+        .purchase-button {
+            background: white;
+            color: #9370DB;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .purchase-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        /* セクション */
+        .section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        /* 利用履歴 */
+        .history-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 12px;
+            background: #f9fafb;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .history-item:hover {
+            background: #f0f0f0;
+            transform: translateX(5px);
+        }
+
+        .history-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #FF69B4, #9370DB);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .history-info {
+            flex: 1;
+        }
+
+        .history-name {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .history-date {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .history-arrow {
+            font-size: 18px;
+            color: #ccc;
+        }
+
+        .no-history {
+            text-align: center;
+            padding: 30px;
+            color: #999;
+            font-size: 14px;
+        }
+
+        /* ログアウトボタン */
+        .logout-button {
+            width: 100%;
+            background: #f0f0f0;
+            color: #666;
+            border: none;
+            padding: 14px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .logout-button:hover {
+            background: #e0e0e0;
+        }
+
+        /* ローディング */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <!-- ヘッダー -->
+    <div class="header">
+        <button class="back-button" onclick="goBack()">←</button>
+        <div class="header-title">マイページ</div>
+    </div>
+
+    <div class="container">
+        <!-- ポイントカード -->
+        <div class="points-card">
+            <div class="points-label">現在の所持ポイント</div>
+            <div class="points-value" id="pointsValue">0pt</div>
+            <button class="purchase-button" onclick="goToPurchase()">💳 ポイント購入</button>
+        </div>
+
+        <!-- プロフィール情報 -->
+        <div class="profile-card">
+            <div class="profile-header">
+                <div class="profile-info">
+                    <div class="profile-name" id="profileName">読み込み中...</div>
+                    <div class="profile-email" id="profileEmail">-</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- マイカルテ (お客様のみ表示) -->
+        <div class="section" id="karteSection" style="display: none;">
+            <div class="section-title">📋 マイカルテ</div>
+            <div class="history-item" onclick="goToMyKarte()" style="background: linear-gradient(135deg, #FCE7F3, #FFF7ED);">
+                <div class="history-icon" style="background: linear-gradient(135deg, #F472B6, #FB923C);">📋</div>
+                <div class="history-info">
+                    <div class="history-name">あなたのカルテ</div>
+                    <div class="history-date">生年月日や相談内容を管理</div>
+                </div>
+                <div class="history-arrow">→</div>
+            </div>
+        </div>
+
+        <!-- 利用履歴 -->
+        <div class="section">
+            <div class="section-title">💬 最近の利用履歴</div>
+            <div id="historyList">
+                <div class="loading">読み込み中...</div>
+            </div>
+        </div>
+
+        <!-- アカウント設定 -->
+        <div class="section">
+            <div class="section-title">⚙️ アカウント設定</div>
+            <div class="history-item" onclick="goToPasswordReset()">
+                <div class="history-icon" style="background: linear-gradient(135deg, #60A5FA, #3B82F6);">🔐</div>
+                <div class="history-info">
+                    <div class="history-name">パスワード変更</div>
+                    <div class="history-date">パスワードを変更します</div>
+                </div>
+                <div class="history-arrow">→</div>
+            </div>
+            <div class="history-item" onclick="deleteAccount()" style="cursor: pointer;">
+                <div class="history-icon" style="background: linear-gradient(135deg, #EF4444, #DC2626);">🗑️</div>
+                <div class="history-info">
+                    <div class="history-name" style="color: #EF4444;">退会する</div>
+                    <div class="history-date">アカウントを削除します</div>
+                </div>
+                <div class="history-arrow">→</div>
+            </div>
+        </div>
+
+        <!-- ログアウト -->
+        <button class="logout-button" onclick="logout()">ログアウト</button>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getFirestore, doc, getDoc, collection, query, where, getDocs, orderBy, limit } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyA52uJ31HzLkbz32lA-3WWSmhM10xYjjCg",
+            authDomain: "cupids-chat.firebaseapp.com",
+            projectId: "cupids-chat",
+            storageBucket: "cupids-chat.firebasestorage.app",
+            messagingSenderId: "44532110483",
+            appId: "1:44532110483:web:d6266e8abba8582b8b6966"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        window.firebaseAuth = auth;
+        window.firebaseDB = db;
+        window.firebaseDoc = doc;
+        window.firebaseGetDoc = getDoc;
+        window.firebaseCollection = collection;
+        window.firebaseQuery = query;
+        window.firebaseWhere = where;
+        window.firebaseGetDocs = getDocs;
+        window.firebaseOrderBy = orderBy;
+        window.firebaseLimit = limit;
+
+        // Firebase初期化完了を通知
+        window.firebaseReady = true;
+        window.dispatchEvent(new Event('firebaseReady'));
+        console.log('✅ Firebase初期化完了!');
+    </script>
+
+    <script>
+        // ログインチェック
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+        if (!currentUser) {
+            alert('ログインが必要です');
+            window.location.href = 'cupids-login.html';
+        }
+
+        // Firebaseからユーザー情報とポイントを取得
+        async function loadUserData() {
+            try {
+                // ユーザータイプに応じてコレクションを選択
+                const collectionName = currentUser.type === 'fortune-teller' ? 'fortuneTellers' : 'users';
+                const userRef = window.firebaseDoc(window.firebaseDB, collectionName, currentUser.uid);
+                const userDoc = await window.firebaseGetDoc(userRef);
+                
+                if (userDoc.exists()) {
+                    const userData = userDoc.data();
+                    
+                    // ポイント情報を更新
+                    const points = userData.points || 0;
+                    currentUser.points = points;
+                    // localStorageには保存しない（Firebaseから常に取得）
+                    
+                    // ポイント表示を即座に更新
+                    document.getElementById('pointsValue').textContent = points.toLocaleString() + 'pt';
+                    
+                    console.log('✅ Firebaseからポイント取得:', points);
+                } else {
+                    console.warn('⚠️ ユーザードキュメントが存在しません');
+                    currentUser.points = 0;
+                    document.getElementById('pointsValue').textContent = '0pt';
+                }
+            } catch (error) {
+                console.error('ユーザーデータ取得エラー:', error);
+                currentUser.points = 0;
+                document.getElementById('pointsValue').textContent = '0pt';
+            }
+        }
+
+        // プロフィール情報を表示
+        function displayProfile() {
+            document.getElementById('profileName').textContent = currentUser.name || '名前未設定';
+            document.getElementById('profileEmail').textContent = currentUser.email || '-';
+            
+            // userIdは存在する場合のみ設定
+            const userIdElement = document.getElementById('userId');
+            if (userIdElement) {
+                userIdElement.textContent = currentUser.uid ? currentUser.uid.slice(0, 8) + '...' : '-';
+            }
+            
+            document.getElementById('pointsValue').textContent = (currentUser.points || 0).toLocaleString() + 'pt';
+
+            // お客様の場合のみカルテセクションを表示
+            if (currentUser.type === 'client') {
+                document.getElementById('karteSection').style.display = 'block';
+            }
+        }
+
+        // 利用履歴を読み込み
+        async function loadHistory() {
+            try {
+                const historyList = document.getElementById('historyList');
+                
+                // Firestoreから自分が参加している会話を取得
+                const conversationsRef = window.firebaseCollection(window.firebaseDB, 'conversations');
+                const q = window.firebaseQuery(
+                    conversationsRef,
+                    window.firebaseWhere('clientId', '==', currentUser.uid),
+                    window.firebaseLimit(10)
+                );
+                
+                const querySnapshot = await window.firebaseGetDocs(q);
+                
+                if (querySnapshot.empty) {
+                    historyList.innerHTML = '<div class="no-history">まだ占い師とチャットしていません</div>';
+                    return;
+                }
+
+                historyList.innerHTML = '';
+                
+                for (const docSnapshot of querySnapshot.docs) {
+                    const conv = docSnapshot.data();
+                    
+                    // 占い師情報を取得
+                    const fortuneTellerDoc = await window.firebaseGetDoc(
+                        window.firebaseDoc(window.firebaseDB, 'fortuneTellers', conv.fortuneTellerId)
+                    );
+                    
+                    if (fortuneTellerDoc.exists()) {
+                        const fortuneTeller = fortuneTellerDoc.data();
+                        
+                        const item = document.createElement('div');
+                        item.className = 'history-item';
+                        item.onclick = () => goToChat(conv.fortuneTellerId);
+                        
+                        const lastDate = conv.lastMessageAt ? new Date(conv.lastMessageAt).toLocaleDateString('ja-JP') : '日付不明';
+                        
+                        item.innerHTML = `
+                            <div class="history-icon">${fortuneTeller.name[0]}</div>
+                            <div class="history-info">
+                                <div class="history-name">${fortuneTeller.name}</div>
+                                <div class="history-date">最終利用: ${lastDate}</div>
+                            </div>
+                            <div class="history-arrow">→</div>
+                        `;
+                        
+                        historyList.appendChild(item);
+                    }
+                }
+                
+            } catch (error) {
+                console.error('履歴読み込みエラー:', error);
+                document.getElementById('historyList').innerHTML = '<div class="no-history">履歴の読み込みに失敗しました</div>';
+            }
+        }
+
+        function goBack() {
+            // ユーザータイプに応じて適切なページに戻る
+            if (currentUser.type === 'fortune-teller') {
+                window.location.href = 'cupids-fortune-lobby.html';
+            } else {
+                window.location.href = 'cupids-top.html';
+            }
+        }
+
+        function goToPurchase() {
+            window.location.href = 'cupids-purchase.html';
+        }
+
+        function goToChat(fortuneTellerId) {
+            localStorage.setItem('selectedFortuneTellerId', fortuneTellerId);
+            window.location.href = 'cupids-chat-v2.html';
+        }
+
+        function goToMyKarte() {
+            // お客様のカルテにアクセス
+            localStorage.setItem('karteMode', 'myKarte'); // マイページからのアクセス
+            localStorage.setItem('karteReferrer', 'mypage'); // 戻る先を記録
+            window.location.href = 'cupids-karte.html';
+        }
+
+        function goToPasswordReset() {
+            window.location.href = 'cupids-password-reset.html';
+        }
+
+        async function deleteAccount() {
+            if (!confirm('本当に退会しますか？\n\n退会すると以下の情報が削除されます：\n・アカウント情報\n・チャット履歴\n・残ポイント（払い戻しはありません）\n\nこの操作は取り消せません。')) {
+                return;
+            }
+
+            if (!confirm('最終確認です。本当に退会してよろしいですか？')) {
+                return;
+            }
+
+            try {
+                // Firebaseからユーザーを削除
+                const user = window.firebaseAuth.currentUser;
+                if (user) {
+                    await user.delete();
+                }
+
+                // localStorageをクリア
+                localStorage.removeItem('currentUser');
+                
+                alert('退会が完了しました。ご利用ありがとうございました。');
+                window.location.href = 'cupids-top.html';
+            } catch (error) {
+                console.error('退会エラー:', error);
+                if (error.code === 'auth/requires-recent-login') {
+                    alert('セキュリティのため、再度ログインしてから退会手続きを行ってください。');
+                    logout();
+                } else {
+                    alert('退会処理に失敗しました。しばらく経ってから再度お試しください。');
+                }
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('currentUser');
+            window.location.href = 'cupids-client-login.html';
+        }
+
+        // Firebase初期化を待ってから実行
+        async function initializePage() {
+            if (!window.firebaseReady) {
+                // Firebaseがまだ準備できていない場合は、イベントを待つ
+                window.addEventListener('firebaseReady', initializePage, { once: true });
+                return;
+            }
+            
+            console.log('🚀 マイページ初期化開始...');
+            
+            // Firebaseから最新のユーザーデータとポイントを取得
+            await loadUserData();
+            
+            // プロフィール情報を表示
+            displayProfile();
+            
+            // 利用履歴を読み込み
+            loadHistory();
+        }
+        
+        // ページ読み込み完了後に初期化
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializePage);
+        } else {
+            initializePage();
+        }
+    </script>
+</body>
+</html>

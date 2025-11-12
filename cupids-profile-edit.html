@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>プロフィール編集 - キューピッズ</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans', sans-serif;
+            background: linear-gradient(135deg, #F9FAFB 0%, #E5E7EB 100%);
+            min-height: 100vh;
+            padding-bottom: 20px;
+        }
+
+        /* ヘッダー */
+        .header {
+            background: white;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .back-button {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .header-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .save-button {
+            background: linear-gradient(135deg, #FF69B4, #9370DB);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .save-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 10px rgba(255,105,180,0.3);
+        }
+
+        /* コンテンツ */
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* セクション */
+        .section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        /* プロフィールメッセージ */
+        .profile-textarea {
+            width: 100%;
+            min-height: 200px;
+            padding: 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            resize: vertical;
+            font-family: inherit;
+        }
+
+        .profile-textarea:focus {
+            outline: none;
+            border-color: #9370DB;
+        }
+
+        .char-count {
+            text-align: right;
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 4px;
+        }
+
+        /* レビュー項目 */
+        .review-item {
+            padding: 16px;
+            background: #f9fafb;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            margin-bottom: 12px;
+        }
+
+        .review-header {
+            display: flex;
+            align-items: start;
+            gap: 12px;
+        }
+
+        .review-checkbox {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            margin-top: 2px;
+            flex-shrink: 0;
+        }
+
+        .review-content {
+            flex: 1;
+        }
+
+        .review-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .review-name {
+            font-size: 14px;
+            font-weight: bold;
+            color: #1f2937;
+        }
+
+        .review-stars {
+            display: flex;
+            align-items: center;
+        }
+
+        .star {
+            color: #fbbf24;
+            font-size: 14px;
+        }
+
+        .review-date {
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        .review-comment {
+            font-size: 14px;
+            color: #6b7280;
+            line-height: 1.5;
+        }
+
+        .no-reviews {
+            font-size: 14px;
+            color: #6b7280;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .info-text {
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 12px;
+        }
+
+        /* ローディング */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <!-- ヘッダー -->
+    <div class="header">
+        <div class="header-left">
+            <button class="back-button" onclick="goBack()">←</button>
+            <div class="header-title">プロフィール編集</div>
+        </div>
+        <button class="save-button" onclick="saveProfile()">💾 保存</button>
+    </div>
+
+    <div class="container">
+        <!-- プロフィールメッセージ -->
+        <div class="section">
+            <div class="section-title">📝 プロフィールメッセージ</div>
+            <textarea 
+                id="profileMessage" 
+                class="profile-textarea" 
+                maxlength="1000"
+                placeholder="お客様に表示されるメッセージを入力してください">
+            </textarea>
+            <div class="char-count">
+                <span id="charCount">0</span> / 1000
+            </div>
+        </div>
+
+        <!-- レビュー表示設定 -->
+        <div class="section">
+            <div class="section-title">⭐ レビュー表示設定</div>
+            <div id="reviewsList">
+                <div class="loading">読み込み中...</div>
+            </div>
+            <div class="info-text">
+                ※チェックを外したレビューはプロフィールに表示されません<br>
+                ※星評価は変更できませんが、コメントの表示/非表示は選べます
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getFirestore, doc, getDoc, updateDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyA52uJ31HzLkbz32lA-3WWSmhM10xYjjCg",
+            authDomain: "cupids-chat.firebaseapp.com",
+            projectId: "cupids-chat",
+            storageBucket: "cupids-chat.firebasestorage.app",
+            messagingSenderId: "44532110483",
+            appId: "1:44532110483:web:d6266e8abba8582b8b6966"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        window.firebaseAuth = auth;
+        window.firebaseDB = db;
+        window.firebaseDoc = doc;
+        window.firebaseGetDoc = getDoc;
+        window.firebaseUpdateDoc = updateDoc;
+
+        // Firebase初期化完了を通知
+        window.firebaseReady = true;
+        window.dispatchEvent(new Event('firebaseReady'));
+        console.log('✅ Firebase初期化完了!');
+    </script>
+
+    <script>
+        // ログインチェック
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+        if (!currentUser || currentUser.type !== 'fortune-teller') {
+            alert('占い師としてログインしてください');
+            window.location.href = 'cupids-fortune-login.html';
+        }
+
+        let fortuneTellerData = {};
+        let reviewVisibility = {};
+
+        // プロフィールを読み込み
+        async function loadProfile() {
+            try {
+                const ftRef = window.firebaseDoc(window.firebaseDB, 'fortuneTellers', currentUser.uid);
+                const ftDoc = await window.firebaseGetDoc(ftRef);
+
+                if (ftDoc.exists()) {
+                    fortuneTellerData = ftDoc.data();
+                    
+                    // プロフィールメッセージを表示
+                    const profileMessage = fortuneTellerData.profileMessage || '';
+                    document.getElementById('profileMessage').value = profileMessage;
+                    updateCharCount();
+
+                    // レビューを表示
+                    displayReviews();
+                }
+            } catch (error) {
+                console.error('プロフィール読み込みエラー:', error);
+            }
+        }
+
+        // 文字数カウント更新
+        function updateCharCount() {
+            const textarea = document.getElementById('profileMessage');
+            const count = textarea.value.length;
+            document.getElementById('charCount').textContent = count;
+        }
+
+        // レビューを表示
+        function displayReviews() {
+            const reviewsList = document.getElementById('reviewsList');
+            const reviews = fortuneTellerData.reviews || [];
+
+            if (reviews.length === 0) {
+                reviewsList.innerHTML = '<div class="no-reviews">まだレビューがありません</div>';
+                return;
+            }
+
+            // レビューの可視性を初期化
+            reviews.forEach(review => {
+                reviewVisibility[review.id] = review.visible !== false;
+            });
+
+            reviewsList.innerHTML = '';
+            
+            reviews.forEach(review => {
+                const item = document.createElement('div');
+                item.className = 'review-item';
+
+                const stars = '★'.repeat(review.rating) + '☆'.repeat(5 - review.rating);
+
+                item.innerHTML = `
+                    <div class="review-header">
+                        <input 
+                            type="checkbox" 
+                            class="review-checkbox" 
+                            data-review-id="${review.id}"
+                            ${reviewVisibility[review.id] ? 'checked' : ''}
+                        >
+                        <div class="review-content">
+                            <div class="review-info">
+                                <span class="review-name">${review.clientName || '匿名'}</span>
+                                <span class="review-stars">${stars}</span>
+                                <span class="review-date">${review.date || ''}</span>
+                            </div>
+                            <div class="review-comment">${review.comment || ''}</div>
+                        </div>
+                    </div>
+                `;
+
+                reviewsList.appendChild(item);
+            });
+
+            // チェックボックスのイベントリスナー
+            document.querySelectorAll('.review-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', (e) => {
+                    const reviewId = e.target.dataset.reviewId;
+                    reviewVisibility[reviewId] = e.target.checked;
+                });
+            });
+        }
+
+        // プロフィールを保存
+        async function saveProfile() {
+            try {
+                const profileMessage = document.getElementById('profileMessage').value;
+
+                // レビューに可視性を反映
+                const updatedReviews = (fortuneTellerData.reviews || []).map(review => ({
+                    ...review,
+                    visible: reviewVisibility[review.id] !== false
+                }));
+
+                // Firestoreを更新
+                const ftRef = window.firebaseDoc(window.firebaseDB, 'fortuneTellers', currentUser.uid);
+                await window.firebaseUpdateDoc(ftRef, {
+                    profileMessage: profileMessage,
+                    reviews: updatedReviews
+                });
+
+                alert('✅ プロフィールを保存しました');
+                goBack();
+
+            } catch (error) {
+                console.error('保存エラー:', error);
+            }
+        }
+
+        function goBack() {
+            window.location.href = 'cupids-fortune-lobby.html';
+        }
+
+        // 文字数カウント監視
+        document.getElementById('profileMessage').addEventListener('input', updateCharCount);
+
+        // Firebase初期化を待ってから初期化
+        if (window.firebaseReady) {
+            // すでに初期化済みの場合はすぐに実行
+            loadProfile();
+        } else {
+            // 初期化待ちの場合はイベントを待つ
+            window.addEventListener('firebaseReady', () => {
+                loadProfile();
+            });
+        }
+    </script>
+</body>
+</html>
