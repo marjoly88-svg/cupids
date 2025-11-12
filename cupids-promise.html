@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>お約束 - キューピッズ</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans', sans-serif;
+            background: #F5F5F5;
+            line-height: 1.8;
+        }
+
+        .header {
+            background: white;
+            padding: 15px 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .back-button {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .header-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px 30px;
+            min-height: calc(100vh - 70px);
+        }
+
+        h1 {
+            font-size: 28px;
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 40px;
+        }
+
+        .promise-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin: 40px 0;
+        }
+
+        .promise-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding: 24px;
+            background: linear-gradient(135deg, #FFF5F8, #F5F8FF);
+            border-radius: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .promise-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 16px;
+            font-size: 36px;
+        }
+
+        .promise-icon.mail {
+            background: #FFE5E5;
+        }
+
+        .promise-icon.exit {
+            background: #E5F5E5;
+        }
+
+        .promise-icon.money {
+            background: #FFF5E5;
+        }
+
+        .promise-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 12px;
+        }
+
+        .promise-desc {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.6;
+        }
+
+        @media (max-width: 640px) {
+            .promise-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <button class="back-button" onclick="window.history.back()">←</button>
+        <div class="header-title">お約束</div>
+    </div>
+
+    <div class="container">
+        <h1>チャット占いキューピッズから皆様へのお約束</h1>
+        <p class="subtitle">チャット占いキューピッズはお客様と占い師に優しいサイト作りを目指しています。</p>
+
+        <div class="promise-grid">
+            <div class="promise-item">
+                <div class="promise-icon mail">💌</div>
+                <div class="promise-title">迷惑メールは一切ありません</div>
+                <div class="promise-desc">ご登録後に迷惑メールが送付される事は一切ございません。安心してご利用いただけます。</div>
+            </div>
+
+            <div class="promise-item">
+                <div class="promise-icon exit">🚪</div>
+                <div class="promise-title">退会はいつでも可能</div>
+                <div class="promise-desc">「退会させてもらえないんじゃ…」などのご心配は不要です。マイページからいつでも退会できます。</div>
+            </div>
+
+            <div class="promise-item">
+                <div class="promise-icon money">💰</div>
+                <div class="promise-title">料金は前払い</div>
+                <div class="promise-desc">ポイントを事前にご購入いただくので、使いすぎる心配はございません。明瞭な料金体系で安心です。</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
