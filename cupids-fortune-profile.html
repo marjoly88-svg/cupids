@@ -205,12 +205,6 @@
             margin-bottom: 8px;
         }
 
-        .review-user {
-            font-size: 14px;
-            font-weight: bold;
-            color: #333;
-        }
-
         .review-stars {
             color: #ffc107;
             font-size: 14px;
@@ -398,7 +392,7 @@
         </div>
     </div>
 
-    <!-- Firebase SDK -->
+    <!-- Firebase SDK 初期化 -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { getAuth } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
@@ -433,11 +427,12 @@
         console.log('✅ Firebase初期化完了!');
     </script>
 
+    <!-- アプリ本体 -->
     <script>
         // URLパラメータから占い師IDを取得
         const urlParams = new URLSearchParams(window.location.search);
         const fortuneTellerId = urlParams.get('id');
-        
+
         if (!fortuneTellerId) {
             alert('占い師が指定されていません');
             window.location.href = 'cupids-client-login.html';
@@ -452,85 +447,118 @@
                 const ftDoc = await window.firebaseGetDoc(ftRef);
 
                 if (!ftDoc.exists()) {
-                    document.getElementById('profileContent').innerHTML = 
+                    document.getElementById('profileContent').innerHTML =
                         '<div class="loading">占い師が見つかりません</div>';
                     return;
                 }
 
-                fortuneTellerData = { id: ftDoc.id, ...ftDoc.data() };
-                
-                // reviewsコレクションから実際のレビュー件数を取得
+                const ftData = ftDoc.data() || {};
+
+                // reviewsコレクションから実レビュー件数を取得
                 const reviewsRef = window.firebaseCollection(window.firebaseDB, 'reviews');
                 const reviewsQuery = window.firebaseQuery(
                     reviewsRef,
                     window.firebaseWhere('fortuneTellerId', '==', fortuneTellerId)
                 );
                 const reviewsSnapshot = await window.firebaseGetDocs(reviewsQuery);
-                // 実レビュー数は actualReviewCount に入れる（reviewCountは上書きしない！）
-                fortuneTellerData.actualReviewCount = reviewsSnapshot.size;
+
+                const actualReviewCount = reviewsSnapshot.size || 0;
+
+                // プロフィール情報をグローバルに保持
+                fortuneTellerData = {
+                    id: ftDoc.id,
+                    ...ftData,
+                    actualReviewCount
+                };
 
                 // プロフィールを表示
                 displayProfile(fortuneTellerData);
-
             } catch (error) {
                 console.error('プロフィール読み込みエラー:', error);
-                document.getElementById('profileContent').innerHTML = 
+                document.getElementById('profileContent').innerHTML =
                     '<div class="loading">読み込みに失敗しました</div>';
             }
         }
 
         // プロフィールを表示
         function displayProfile(ft) {
-            const statusText = ft.status === 'available' ? 'すぐ占えます' : 
-                              ft.status === 'accepting' ? '鑑定受付中（24時間以内に返信）' : 
-                              '鑑定停止中';
-            const statusClass = ft.status === 'available' ? 'available' : 
-                               ft.status === 'accepting' ? 'accepting' : 
-                               'stopped';
+            const statusText =
+                ft.status === 'available'
+                    ? 'すぐ占えます'
+                    : ft.status === 'accepting'
+                        ? '鑑定受付中（24時間以内に返信）'
+                        : '鑑定停止中';
+
+            const statusClass =
+                ft.status === 'available'
+                    ? 'available'
+                    : ft.status === 'accepting'
+                        ? 'accepting'
+                        : 'stopped';
 
             const imageUrl = ft.photoURL || ft.profileImageUrl || ft.imageUrl;
             const avatarContent = imageUrl
-                ? `<img src="${imageUrl}" class="profile-avatar" />` 
-                : `<div class="profile-avatar">${ft.name.charAt(0)}</div>`;
+                ? `<img src="${imageUrl}" class="profile-avatar" />`
+                : `<div class="profile-avatar">${(ft.name || '？').charAt(0)}</div>`;
 
-            const tags = ft.specialty ? ft.specialty.split(',').map(tag => tag.trim()) : [];
-            
-            // レビュー件数（鑑定数表示用）
-            let totalReviewCount;
-            
-            // ① 管理画面で totalReviews を直接入れているならそれを優先
-            if (typeof ft.totalReviews === 'number' && !isNaN(ft.totalReviews)) {
-                totalReviewCount = ft.totalReviews;
-            } else {
-                // ② 実レビュー数 + ベースの数（ダミー/加算分）
-                const actualReviewCount =
-                    typeof ft.actualReviewCount === 'number' ? ft.actualReviewCount :
-                    typeof ft.reviewCount === 'number' ? ft.reviewCount : 0;
+            const tags = ft.specialty
+                ? ft.specialty.split(',').map(tag => tag.trim()).filter(Boolean)
+                : [];
 
-                const baseCount =
-                    typeof ft.baseReviewCount === 'number' ? ft.baseReviewCount :
-                    typeof ft.dummyReviewCount === 'number' ? ft.dummyReviewCount : 0;
+            // 実レビュー数
+            const actualReviewCount =
+                typeof ft.actualReviewCount === 'number' && !isNaN(ft.actualReviewCount)
+                    ? ft.actualReviewCount
+                    : typeof ft.reviewCount === 'number' && !isNaN(ft.reviewCount)
+                        ? ft.reviewCount
+                        : 0;
 
-                totalReviewCount = actualReviewCount + baseCount;
+            // 管理画面の基準レビュー（＋10とか）
+            const baseCountRaw =
+                typeof ft.baseReviewCount === 'number' && !isNaN(ft.baseReviewCount)
+                    ? ft.baseReviewCount
+                    : typeof ft.dummyReviewCount === 'number' && !isNaN(ft.dummyReviewCount)
+                        ? ft.dummyReviewCount
+                        : 0;
+            const baseReviewCount = Math.max(0, baseCountRaw);
+
+            // 表示用の鑑定数 = 実レビュー + 基準値
+            const totalReviewCount = actualReviewCount + baseReviewCount;
+
+            // 平均評価
+            const averageRating =
+                typeof ft.averageRating === 'number' && !isNaN(ft.averageRating)
+                    ? Number(ft.averageRating).toFixed(1)
+                    : '5.0';
+
+            // 1文字単価
+            const pricePerChar =
+                typeof ft.pricePerChar === 'number' && !isNaN(ft.pricePerChar)
+                    ? ft.pricePerChar
+                    : typeof ft.price === 'number' && !isNaN(ft.price)
+                        ? ft.price
+                        : 10;
+
+            // ここで pricePerChar を保持しておく（チャット画面に渡す用）
+            if (fortuneTellerData) {
+                fortuneTellerData.pricePerChar = pricePerChar;
             }
 
             const html = `
-                <!-- プロフィールヘッダー -->
                 <div class="profile-header">
                     ${avatarContent}
-                    <div class="profile-name">${ft.name}</div>
+                    <div class="profile-name">${ft.name || '占い師'}</div>
                     <div class="profile-rating">
                         <span class="star">⭐</span>
-                        <span>${ft.averageRating || 5.0}</span>
+                        <span>${averageRating}</span>
                         <span>|</span>
                         <span>鑑定数 ${totalReviewCount}件</span>
                     </div>
                     <div class="profile-status ${statusClass}">${statusText}</div>
-                    <div class="profile-price">1文字 ${ft.price || 10}pt</div>
+                    <div class="profile-price">1文字 ${pricePerChar}pt</div>
                     <a href="https://minamisan.square.site/" target="_blank" class="point-purchase-link">💳 ポイント購入</a>
                 </div>
 
-                <!-- 得意分野 -->
                 ${tags.length > 0 ? `
                 <div class="profile-section">
                     <div class="section-title">得意分野</div>
@@ -540,13 +568,11 @@
                 </div>
                 ` : ''}
 
-                <!-- プロフィール -->
                 <div class="profile-section">
                     <div class="section-title">プロフィール</div>
                     <div class="profile-description">${ft.profileMessage || 'プロフィールメッセージがありません'}</div>
                 </div>
 
-                <!-- レビュー -->
                 <div class="profile-section">
                     <div class="section-title">レビュー (${totalReviewCount}件)</div>
                     <button class="review-button" onclick="openReviewModal()">
@@ -557,11 +583,14 @@
 
             document.getElementById('profileContent').innerHTML = html;
 
-            // チャットボタンの状態を設定
+            // チャットボタンの状態
             const chatButton = document.getElementById('chatButton');
             if (ft.status === 'stopped') {
                 chatButton.disabled = true;
                 chatButton.textContent = '現在鑑定を受け付けていません';
+            } else {
+                chatButton.disabled = false;
+                chatButton.textContent = '💬 チャットを始める';
             }
         }
 
@@ -569,19 +598,18 @@
         async function openReviewModal() {
             const modal = document.getElementById('reviewModal');
             const reviewsList = document.getElementById('modalReviewsList');
-            
+
             modal.classList.add('active');
             reviewsList.innerHTML = '<div class="loading">読み込み中...</div>';
-            
+
             try {
-                // reviewsコレクションから取得
                 const reviewsRef = window.firebaseCollection(window.firebaseDB, 'reviews');
                 const reviewsQuery = window.firebaseQuery(
                     reviewsRef,
                     window.firebaseWhere('fortuneTellerId', '==', fortuneTellerId)
                 );
                 const reviewsSnapshot = await window.firebaseGetDocs(reviewsQuery);
-                
+
                 if (reviewsSnapshot.empty) {
                     reviewsList.innerHTML = '<div class="no-reviews">まだレビューがありません</div>';
                     return;
@@ -592,12 +620,17 @@
                     reviews.push(doc.data());
                 });
 
-                // 日付順にソート（新しい順）
-                reviews.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                // 新しい日付順
+                reviews.sort((a, b) => {
+                    const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+                    const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+                    return bTime - aTime;
+                });
 
                 reviewsList.innerHTML = '';
+
                 reviews.forEach(review => {
-                    // コメントがない（★だけの）レビューはスキップ
+                    // コメントなしはスキップ
                     if (!review.comment || review.comment.trim() === '') {
                         return;
                     }
@@ -606,7 +639,9 @@
                     reviewDiv.className = 'review-item';
 
                     const stars = '⭐'.repeat(review.rating || 5);
-                    const date = review.createdAt ? new Date(review.createdAt).toLocaleDateString('ja-JP') : '';
+                    const date = review.createdAt
+                        ? new Date(review.createdAt).toLocaleDateString('ja-JP')
+                        : '';
                     const comment = review.comment || '';
 
                     reviewDiv.innerHTML = `
@@ -619,12 +654,10 @@
 
                     reviewsList.appendChild(reviewDiv);
                 });
-                
-                // 全てのレビューがコメントなしの場合
+
                 if (reviewsList.children.length === 0) {
                     reviewsList.innerHTML = '<div class="no-reviews">まだコメント付きレビューがありません</div>';
                 }
-
             } catch (error) {
                 console.error('レビュー読み込みエラー:', error);
                 reviewsList.innerHTML = '<div class="no-reviews">レビューの読み込みに失敗しました</div>';
@@ -638,69 +671,70 @@
         }
 
         // モーダル外クリックで閉じる
-        window.onclick = function(event) {
+        window.addEventListener('click', function (event) {
             const modal = document.getElementById('reviewModal');
             if (event.target === modal) {
                 closeReviewModal();
             }
-        }
-
+        });
 
         // チャットを開始
         async function startChat() {
-            // ログインチェック
             const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
-            
+
             if (!currentUser || currentUser.type !== 'client') {
-                // 未ログインの場合はログイン画面へ（占い師IDを保持）
                 localStorage.setItem('returnToFortuneTeller', fortuneTellerId);
                 window.location.href = 'cupids-client-login.html';
                 return;
             }
 
-            // Firebaseが準備できているか確認
             if (!window.firebaseDB) {
                 alert('システムを準備中です。少しお待ちください。');
                 return;
             }
 
             try {
-                // 既存のconversationを検索
                 const conversationsRef = window.firebaseCollection(window.firebaseDB, 'conversations');
                 const q = window.firebaseQuery(
                     conversationsRef,
                     window.firebaseWhere('clientId', '==', currentUser.uid),
                     window.firebaseWhere('fortuneTellerId', '==', fortuneTellerId)
                 );
-                
+
                 const querySnapshot = await window.firebaseGetDocs(q);
-                
                 let conversationId;
-                
+
                 if (!querySnapshot.empty) {
-                    // 既存のconversationがある
                     conversationId = querySnapshot.docs[0].id;
                 } else {
-                    // 新しいconversationを作成
+                    const nowIso = new Date().toISOString();
                     const newConvRef = await window.firebaseAddDoc(conversationsRef, {
                         clientId: currentUser.uid,
                         fortuneTellerId: fortuneTellerId,
                         status: 'not-started',
-                        createdAt: new Date().toISOString(),
+                        createdAt: nowIso,
                         lastMessage: '',
-                        lastMessageAt: new Date().toISOString()
+                        lastMessageAt: nowIso
                     });
                     conversationId = newConvRef.id;
                 }
-                
-                // localStorageに保存
+
+                const ft = fortuneTellerData || {};
+                const displayName = ft.name || ft.displayName || '占い師';
+                const pricePerChar =
+                    typeof ft.pricePerChar === 'number' && !isNaN(ft.pricePerChar)
+                        ? ft.pricePerChar
+                        : typeof ft.price === 'number' && !isNaN(ft.price)
+                            ? ft.price
+                            : 10;
+
                 localStorage.setItem('selectedConversationId', conversationId);
                 localStorage.setItem('selectedFortuneTellerId', fortuneTellerId);
-                localStorage.setItem('selectedFortuneTellerName', fortuneTellerData.name || fortuneTellerData.displayName || '占い師');
-                localStorage.setItem('selectedFortuneTellerPrice', fortuneTellerData.pricePerChar || 10);
-                
-                // チャット画面へ
-                window.location.href = `cupids-chat-v2.html?fortuneTellerId=${fortuneTellerId}&conversationId=${conversationId}`;
+                localStorage.setItem('selectedFortuneTellerName', displayName);
+                localStorage.setItem('selectedFortuneTellerPrice', pricePerChar);
+
+                window.location.href =
+                    `cupids-chat-v2.html?fortuneTellerId=${fortuneTellerId}&conversationId=${conversationId}`;
             } catch (error) {
                 console.error('チャット開始エラー:', error);
                 alert('チャットを開始できませんでした。もう一度お試しください。');
@@ -709,11 +743,10 @@
 
         // 戻る
         function goBack() {
-            // 常にTOPページに戻る
             window.location.href = 'cupids-top.html';
         }
 
-        // Firebase初期化を待ってから初期化
+        // Firebase初期化待ち
         if (window.firebaseReady) {
             loadProfile();
         } else {
