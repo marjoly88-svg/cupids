@@ -1,0 +1,2179 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理画面 - キューピッズ</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans', sans-serif;
+            background: #F5F5F5;
+            min-height: 100vh;
+            padding-bottom: 20px;
+        }
+
+        /* ヘッダー */
+        .header {
+            background: linear-gradient(to right, #ec4899, #a855f7);
+            padding: 15px 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+        }
+
+        .logout-button {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .logout-button:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        /* コンテナ */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* 統計カード */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        /* セクション */
+        .section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        /* テーブル */
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .table th {
+            background: #f9fafb;
+            padding: 12px;
+            text-align: left;
+            font-size: 14px;
+            color: #666;
+            font-weight: 600;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .table td {
+            padding: 12px;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .table tr:hover {
+            background: #f9fafb;
+        }
+
+        /* ローディング */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        /* 操作ボタン */
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+
+        .btn-danger {
+            background: #EF4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #DC2626;
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .star-display {
+            color: #FFB800;
+            font-size: 16px;
+        }
+
+        .fixed-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            background: #FEF3C7;
+            color: #92400E;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-left: 6px;
+        }
+
+        /* 占い師カード - スマホ対応 */
+        .fortunetellers-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 20px;
+        }
+
+        .ft-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s;
+        }
+
+        .ft-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+
+        .ft-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+
+        .ft-card-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .ft-card-email {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .ft-card-status {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .ft-card-status.active {
+            background: #DEF7EC;
+            color: #03543F;
+        }
+
+        .ft-card-status.inactive {
+            background: #FEE2E2;
+            color: #991B1B;
+        }
+
+        .ft-card-info {
+            margin: 15px 0;
+            padding: 15px 0;
+            border-top: 1px solid #f3f4f6;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .ft-card-info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .ft-card-info-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .ft-card-info-label {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .ft-card-info-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .ft-card-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        /* PC表示時はテーブルに戻す */
+        @media (min-width: 1024px) {
+            .fortunetellers-grid {
+                display: none;
+            }
+            .table-wrapper {
+                display: block;
+            }
+        }
+
+        /* スマホ・タブレット表示時はカードに */
+        @media (max-width: 1023px) {
+            .fortunetellers-grid {
+                display: grid;
+            }
+            .table-wrapper {
+                display: none;
+            }
+        }
+
+        /* フォーム */
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 6px;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+
+        .form-group small {
+            display: block;
+            margin-top: 4px;
+        }
+
+        /* ランキング */
+        .ranking-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .ranking-item {
+            background: #f9fafb;
+            border-radius: 12px;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transition: all 0.2s;
+        }
+
+        .ranking-item:hover {
+            background: #f3f4f6;
+            transform: translateX(5px);
+        }
+
+        .ranking-medal {
+            font-size: 32px;
+            min-width: 40px;
+            text-align: center;
+        }
+
+        .ranking-number {
+            font-size: 20px;
+            font-weight: bold;
+            color: #666;
+            min-width: 40px;
+            text-align: center;
+        }
+
+        .ranking-info {
+            flex: 1;
+        }
+
+        .ranking-name {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .ranking-email {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .ranking-sales {
+            text-align: right;
+        }
+
+        .ranking-amount {
+            font-size: 20px;
+            font-weight: bold;
+            color: #10b981;
+        }
+
+        .ranking-commission {
+            font-size: 12px;
+            color: #666;
+            margin-top: 2px;
+        }
+
+        /* モーダル */
+        .users-table-wrapper {
+            max-height: 250px;
+            overflow-y: auto;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+        }
+        
+        .users-table-wrapper::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .users-table-wrapper::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        
+        .users-table-wrapper::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 20px;
+            color: #333;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 28px;
+            color: #999;
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-close:hover {
+            color: #666;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+    </style>
+</head>
+<body>
+    <!-- ヘッダー -->
+    <div class="header">
+        <div class="header-content">
+            <div class="header-title">🔧 管理画面</div>
+            <button class="logout-button" onclick="logout()">ログアウト</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- 統計カード -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">総ユーザー数</div>
+                <div class="stat-value" id="totalUsers">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">占い師数</div>
+                <div class="stat-value" id="totalFortuneTellers">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">今月の総売上</div>
+                <div class="stat-value" id="monthlyRevenue">¥0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">今月の利益</div>
+                <div class="stat-value" id="monthlyProfit">¥0</div>
+            </div>
+        </div>
+
+
+        <!-- 占い師登録 -->
+        <div class="section" id="section-register">
+            <div class="section-title">➕ 占い師を登録</div>
+            <form id="addFortuneTellerForm" style="max-width: 600px;">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>占い師名 *</label>
+                        <input type="text" id="ftName" required>
+                    </div>
+                    <div class="form-group">
+                        <label>メールアドレス *</label>
+                        <input type="email" id="ftEmail" required>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>初期パスワード *</label>
+                        <input type="text" id="ftPassword" value="cupids123" required>
+                        <small style="color: #666; font-size: 12px;">後で変更できます</small>
+                    </div>
+                    <div class="form-group">
+                        <label>1文字あたりの料金（pt） *</label>
+                        <input type="number" id="ftPrice" min="1" value="10" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>自己紹介・メッセージ *</label>
+                    <textarea id="ftMessage" rows="4" required placeholder="お客様に向けた自己紹介文を入力してください"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>プロフィール画像</label>
+                    <input type="file" id="ftImage" accept="image/*">
+                    <small style="color: #666; font-size: 12px; display: block; margin-top: 4px;">
+                        ※ 画像は円形にトリミングされて表示されます。プレビューで確認してください。
+                    </small>
+                    <div id="imagePreview" style="margin-top: 15px; display: none;">
+                        <div style="font-size: 13px; color: #666; margin-bottom: 8px; font-weight: 600;">
+                            📷 プレビュー（実際の表示イメージ）
+                        </div>
+                        <!-- 円のサイズ調整スライダー -->
+                        <div style="margin-bottom: 10px; display: flex; align-items: center; gap: 10px;">
+                            <label style="font-size: 12px; color: #666; font-weight: 600; white-space: nowrap;">円のサイズ:</label>
+                            <input type="range" id="circleSize" min="20" max="50" value="35" step="1" style="flex: 1; max-width: 200px;">
+                            <span id="circleSizeValue" style="font-size: 12px; color: #666; font-weight: 600; min-width: 40px;">35%</span>
+                        </div>
+                        <!-- 画像位置調整 -->
+                        <div style="margin-bottom: 10px; display: flex; align-items: center; gap: 10px;">
+                            <label style="font-size: 12px; color: #666; font-weight: 600; white-space: nowrap;">画像位置:</label>
+                            <button type="button" onclick="moveImage('up')" style="padding: 4px 8px; font-size: 12px;">↑</button>
+                            <button type="button" onclick="moveImage('down')" style="padding: 4px 8px; font-size: 12px;">↓</button>
+                            <button type="button" onclick="moveImage('left')" style="padding: 4px 8px; font-size: 12px;">←</button>
+                            <button type="button" onclick="moveImage('right')" style="padding: 4px 8px; font-size: 12px;">→</button>
+                            <button type="button" onclick="resetImagePosition()" style="padding: 4px 8px; font-size: 12px;">リセット</button>
+                        </div>
+                        <!-- 画像サイズ調整 -->
+                        <div style="margin-bottom: 10px; display: flex; align-items: center; gap: 10px;">
+                            <label style="font-size: 12px; color: #666; font-weight: 600; white-space: nowrap;">画像サイズ:</label>
+                            <input type="range" id="imageScale" min="50" max="200" value="100" step="5" style="flex: 1; max-width: 200px;">
+                            <span id="imageScaleValue" style="font-size: 12px; color: #666; font-weight: 600; min-width: 45px;">100%</span>
+                        </div>
+                        <div style="position: relative; display: inline-block; overflow: hidden; border-radius: 10px; width: 200px; height: 200px; background: #f0f0f0;">
+                            <img id="previewImg" 
+                                 style="position: absolute; width: 100%; height: auto; top: 0; left: 0; cursor: move;" 
+                                 alt="プレビュー"
+                                 draggable="true">
+                            <!-- 円形ガイドオーバーレイ -->
+                            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;">
+                                <svg width="100%" height="100%" style="position: absolute; top: 0; left: 0;">
+                                    <!-- 半透明の暗い背景 -->
+                                    <rect width="100%" height="100%" fill="rgba(0,0,0,0.3)"/>
+                                    <!-- 中央の円形カットアウト（マスクとして透明に） -->
+                                    <mask id="circleMask">
+                                        <rect width="100%" height="100%" fill="white"/>
+                                        <circle id="previewCircleFill" cx="50%" cy="50%" r="35%" fill="black"/>
+                                    </mask>
+                                    <rect width="100%" height="100%" fill="rgba(0,0,0,0.5)" mask="url(#circleMask)"/>
+                                    <!-- 円形の枠線 -->
+                                    <circle id="previewCircleStroke" cx="50%" cy="50%" r="35%" fill="none" stroke="#EC4899" stroke-width="3" stroke-dasharray="5,5"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div style="font-size: 12px; color: #666; margin-top: 10px;">
+                            💡 矢印ボタンまたはドラッグで画像の位置を調整できます
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px; font-size: 16px;">
+                    占い師を登録
+                </button>
+            </form>
+        </div>
+
+        <!-- ユーザー一覧 -->
+        <div class="section" id="section-users">
+            <div class="section-title">👥 ユーザー一覧</div>
+            <div class="users-table-wrapper">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>名前</th>
+                            <th>メールアドレス</th>
+                            <th>タイプ</th>
+                            <th>ポイント</th>
+                            <th>登録日</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersList">
+                        <tr><td colspan="6" class="loading">読み込み中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 占い師一覧 -->
+        <div class="section" id="section-fortune-tellers">
+            <div class="section-title">🔮 占い師一覧</div>
+            
+            <!-- PC用テーブル表示 -->
+            <div class="table-wrapper">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>名前</th>
+                            <th>メールアドレス</th>
+                            <th>専門分野</th>
+                            <th>料金</th>
+                            <th>評価</th>
+                            <th>報酬率</th>
+                            <th>ステータス</th>
+                            <th>鑑定中ダミー</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="fortunetellersList">
+                        <tr><td colspan="9" class="loading">読み込み中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- スマホ・タブレット用カード表示 -->
+            <div class="fortunetellers-grid" id="fortunetellersGrid">
+                <div class="loading">読み込み中...</div>
+            </div>
+        </div>
+
+        <!-- レビュー管理 -->
+        <div class="section" id="section-reviews">
+            <div class="section-title">⭐ レビュー管理
+                <button class="btn btn-primary" onclick="showAddReviewModal()" style="float: right; padding: 8px 16px; font-size: 14px;">
+                    ➕ レビュー追加
+                </button>
+            </div>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>占い師</th>
+                        <th>お客様</th>
+                        <th>評価</th>
+                        <th>コメント</th>
+                        <th>投稿日</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="reviewsList">
+                    <tr><td colspan="6" class="loading">読み込み中...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 占い師売上ランキング -->
+        <div class="section" id="section-ranking">
+            <div class="section-title">🏆 今月の売上ランキング</div>
+            <div class="ranking-list" id="rankingList">
+                <div class="loading">読み込み中...</div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getFirestore, collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, query, where, orderBy } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { getStorage, ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyA52uJ31HzLkbz32lA-3WWSmhM10xYjjCg",
+            authDomain: "cupids-chat.firebaseapp.com",
+            projectId: "cupids-chat",
+            storageBucket: "cupids-chat.firebasestorage.app",
+            messagingSenderId: "44532110483",
+            appId: "1:44532110483:web:d6266e8abba8582b8b6966"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+        
+        // 管理者認証
+        signInWithEmailAndPassword(auth, 'admin@cupids-chat.com', 'memetan1031admin')
+            .then(() => console.log('✅ 管理者認証成功'))
+            .catch(error => {
+                if (error.code === 'auth/user-not-found') {
+                    createUserWithEmailAndPassword(auth, 'admin@cupids-chat.com', 'memetan1031admin')
+                        .then(() => console.log('✅ 管理者アカウント作成'))
+                        .catch(e => console.error('作成エラー:', e));
+                }
+            });
+        
+        // 管理者として自動ログイン
+        async function adminAutoLogin() {
+            try {
+                // 管理者アカウントでログイン試行
+                await signInWithEmailAndPassword(auth, 'admin@cupids-chat.com', 'memetan1031admin');
+                console.log('✅ 管理者認証成功');
+            } catch (error) {
+                if (error.code === 'auth/user-not-found') {
+                    // 初回：管理者アカウントを作成
+                    try {
+                        await createUserWithEmailAndPassword(auth, 'admin@cupids-chat.com', 'memetan1031admin');
+                        console.log('✅ 管理者アカウント作成完了');
+                    } catch (createError) {
+                        console.error('管理者アカウント作成エラー:', createError);
+                    }
+                } else if (error.code === 'auth/invalid-credential') {
+                    console.error('認証情報が無効です');
+                }
+            }
+        }
+        
+        window.firebaseAuth = auth;
+        window.firebaseDB = db;
+        window.firebaseStorage = storage;
+        window.firebaseCreateUser = createUserWithEmailAndPassword;
+        window.firebaseStorageRef = ref;
+        window.firebaseUploadBytes = uploadBytes;
+        window.firebaseGetDownloadURL = getDownloadURL;
+        window.firebaseCollection = collection;
+        window.firebaseGetDocs = getDocs;
+        window.firebaseDoc = doc;
+        window.firebaseGetDoc = getDoc;
+        window.firebaseSetDoc = setDoc;
+        window.firebaseUpdateDoc = updateDoc;
+        window.firebaseDeleteDoc = deleteDoc;
+        window.firebaseQuery = query;
+        window.firebaseWhere = where;
+        window.firebaseOrderBy = orderBy;
+
+        // Firebase初期化完了を通知
+        window.firebaseReady = true;
+        window.dispatchEvent(new Event('firebaseReady'));
+        console.log('✅ Firebase初期化完了!');
+        
+        // loadData関数を実行
+        setTimeout(() => {
+            if (window.loadData && typeof window.loadData === 'function') {
+                console.log('🚀 loadData実行開始...');
+                window.loadData();
+            } else {
+                console.error('❌ loadData関数が見つかりません');
+            }
+        }, 2000); // 2秒待機
+    </script>
+
+    <script>
+        // ログインチェック
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+        if (!currentUser || currentUser.type !== 'admin') {
+            alert('管理者としてログインしてください');
+            window.location.href = 'cupids-top.html';
+        }
+
+        // データを読み込み（グローバル関数として定義）
+        window.loadData = async function() {
+            // Firebase初期化チェック
+            if (!window.firebaseReady || !window.firebaseDB) {
+                console.log('⏳ Firebase初期化待機中...');
+                setTimeout(loadData, 500);
+                return;
+            }
+            
+            console.log('📊 データ読み込み開始...');
+            
+            try {
+                // ユーザー一覧を取得（usersコレクション）
+                const usersSnapshot = await window.firebaseGetDocs(
+                    window.firebaseCollection(window.firebaseDB, 'users')
+                );
+                
+                const users = [];
+                usersSnapshot.forEach(doc => {
+                    users.push({ id: doc.id, ...doc.data() });
+                });
+
+                // 占い師一覧を取得
+                const fortuneTellersSnapshot = await window.firebaseGetDocs(
+                    window.firebaseCollection(window.firebaseDB, 'fortuneTellers')
+                );
+                
+                const fortuneTellers = [];
+                fortuneTellersSnapshot.forEach(doc => {
+                    fortuneTellers.push({ id: doc.id, ...doc.data() });
+                });
+
+                // チャット数を取得
+
+                // 統計を更新
+                document.getElementById('totalUsers').textContent = users.length;
+                document.getElementById('totalFortuneTellers').textContent = fortuneTellers.length;
+
+                // 今月の売上と利益を計算
+                let monthlyRevenue = 0;
+                let totalCommission = 0; // 占い師の取り分合計
+                
+                fortuneTellers.forEach(ft => {
+                    const revenue = ft.currentMonthRevenue || 0;
+                    monthlyRevenue += revenue;
+                    
+                    // 占い師の報酬率を計算
+                    let commissionRate;
+                    if (ft.fixedCommissionRate) {
+                        commissionRate = ft.fixedCommissionRate;
+                    } else {
+                        const previousRevenue = ft.previousMonthRevenue || 0;
+                        if (previousRevenue >= 270000) {
+                            commissionRate = 40;
+                        } else if (previousRevenue >= 210000) {
+                            commissionRate = 38;
+                        } else if (previousRevenue >= 150000) {
+                            commissionRate = 36;
+                        } else if (previousRevenue >= 90000) {
+                            commissionRate = 34;
+                        } else if (previousRevenue >= 30000) {
+                            commissionRate = 32;
+                        } else {
+                            commissionRate = 30;
+                        }
+                    }
+                    
+                    // 占い師の取り分を計算
+                    totalCommission += revenue * (commissionRate / 100);
+                });
+                
+                // 利益 = 総売上 - 占い師の取り分
+                const monthlyProfit = monthlyRevenue - totalCommission;
+                
+                document.getElementById('monthlyRevenue').textContent = '¥' + Math.floor(monthlyRevenue).toLocaleString();
+                document.getElementById('monthlyProfit').textContent = '¥' + Math.floor(monthlyProfit).toLocaleString();
+
+                // ユーザーテーブルを表示
+                displayUsers(users);
+
+                // 占い師テーブルを表示
+                displayFortuneTellers(fortuneTellers);
+
+                // レビューを読み込み
+                await loadReviews();
+
+                // 売上ランキングを表示
+                displayRanking(fortuneTellers);
+
+            } catch (error) {
+                console.error('データ読み込みエラー:', error);
+                // エラーが出ても画面は表示する（ポップアップは出さない）
+                // 空のデータで表示
+                document.getElementById('totalUsers').textContent = '0';
+                document.getElementById('totalFortuneTellers').textContent = '0';
+                document.getElementById('totalChats').textContent = '0';
+                document.getElementById('monthlyRevenue').textContent = '¥0';
+                document.getElementById('monthlyProfit').textContent = '¥0';
+            }
+        }
+
+        // ユーザーテーブルを表示（5件表示＋スクロール）
+        function displayUsers(users) {
+            const container = document.getElementById('usersList').parentElement;
+            container.style.maxHeight = '280px';
+            container.style.overflowY = 'auto';
+            
+            const tbody = document.getElementById('usersList');
+            
+            if (users.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #999;">ユーザーがいません</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = '';
+            users.forEach(user => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${user.name || '-'}</td>
+                    <td>${user.email || '-'}</td>
+                    <td>${user.type === 'client' ? 'お客様' : user.type}</td>
+                    <td>${user.points || 0}pt</td>
+                    <td>${user.createdAt ? new Date(user.createdAt).toLocaleDateString('ja-JP') : '-'}</td>
+                    <td>
+                        <button onclick="addPointsToUser('${user.id}', '${user.name}')" 
+                                style="background: #4CAF50; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer;">
+                            ➕ ポイント追加
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // 占い師テーブルを表示
+        function displayFortuneTellers(fortuneTellers) {
+            const tbody = document.getElementById('fortunetellersList');
+            const cardsGrid = document.getElementById('fortunetellersGrid');
+            
+            if (fortuneTellers.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #999;">占い師がいません</td></tr>';
+                cardsGrid.innerHTML = '<div class="loading">占い師がいません</div>';
+                return;
+            }
+
+            // テーブル表示
+            tbody.innerHTML = '';
+            fortuneTellers.forEach(ft => {
+                const isNew = ft.isNew || false;
+                const tr = document.createElement('tr');
+                
+                let statusText = '不明';
+                if (ft.status === 'available') statusText = '⚡ 待機中';
+                else if (ft.status === 'accepting') statusText = '📝 受付中';
+                else if (ft.status === 'stopped') statusText = '⏸️ 停止中';
+
+                // 評価表示（固定されているか）
+                const totalReviews = ft.totalReviews || 0;
+                const baseReviewCount = ft.baseReviewCount || 0; // 管理画面で設定した基準値
+                const ratingDisplay = ft.ratingFixed 
+                    ? `<span class="star-display">⭐ ${ft.averageRating || 0}</span><span class="fixed-badge">🔒 固定</span><br><small style="color: #666;">レビュー ${totalReviews}件${baseReviewCount > 0 ? ' (基準:' + baseReviewCount + ')' : ''}</small>` 
+                    : `<span class="star-display">⭐ ${ft.averageRating || 0}</span><br><small style="color: #666;">レビュー ${totalReviews}件${baseReviewCount > 0 ? ' (基準:' + baseReviewCount + ')' : ''}</small>`;
+
+                // 報酬率表示（固定されているか）
+                // 固定報酬率がある場合はそれを使用、なければ前月実績から計算
+                let commissionRate;
+                if (ft.fixedCommissionRate) {
+                    commissionRate = ft.fixedCommissionRate;
+                } else {
+                    const previousRevenue = ft.previousMonthRevenue || 0;
+                    if (previousRevenue >= 270000) {
+                        commissionRate = 40;
+                    } else if (previousRevenue >= 210000) {
+                        commissionRate = 38;
+                    } else if (previousRevenue >= 150000) {
+                        commissionRate = 36;
+                    } else if (previousRevenue >= 90000) {
+                        commissionRate = 34;
+                    } else if (previousRevenue >= 30000) {
+                        commissionRate = 32;
+                    } else {
+                        commissionRate = 30;
+                    }
+                }
+                
+                const commissionDisplay = ft.fixedCommissionRate 
+                    ? `<strong>${commissionRate}%</strong><span class="fixed-badge">🔒 固定</span>` 
+                    : `${commissionRate}%`;
+
+                tr.innerHTML = `
+                    <td>
+                        ${isNew ? '<span style="background: #ff4444; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px; margin-right: 5px;">NEW</span>' : ''}
+                        <strong>${ft.name || '-'}</strong>
+                    </td>
+                    <td style="font-size: 13px; color: #666;">${ft.email || '-'}</td>
+                    <td style="font-size: 13px;">${ft.specialty || '-'}</td>
+                    <td><strong>${ft.price || 10}pt</strong>/文字</td>
+                    <td>${ratingDisplay}</td>
+                    <td>${commissionDisplay}</td>
+                    <td>${statusText}</td>
+                    <td>
+                        <button class="btn btn-primary" onclick="showDummyClientsModal('${ft.id}', '${ft.name || '占い師'}', ${ft.dummyActiveClients || 0})" style="font-size: 13px; padding: 6px 12px;">
+                            ${ft.dummyActiveClients || 0}人
+                        </button>
+                    </td>
+                    <td>
+                        <div class="action-buttons" style="display: flex; flex-wrap: wrap; gap: 4px;">
+                            <button class="btn ${isNew ? 'btn-secondary' : 'btn-danger'}" 
+                                    onclick="toggleFortuneTellerNewMark('${ft.id}', ${!isNew})" 
+                                    style="font-size: 12px; padding: 4px 8px; width: 100%;"
+                                    title="${isNew ? 'NEWマークを解除' : 'NEWマークを付与'}">
+                                ${isNew ? '🏷️ NEW解除' : '🏷️ NEW付与'}
+                            </button>
+                            <button class="btn btn-primary" 
+                                    onclick="editPrice('${ft.id}', '${ft.name}', ${ft.price || 10})" 
+                                    style="font-size: 12px; padding: 4px 8px; width: 100%;"
+                                    title="料金を変更">
+                                💰 料金変更
+                            </button>
+                            <button class="btn ${ft.isDummy ? 'btn-success' : 'btn-secondary'}" 
+                                    onclick="toggleDummy('${ft.id}', ${!!ft.isDummy})" 
+                                    style="font-size: 12px; padding: 4px 8px;"
+                                    title="${ft.isDummy ? 'ダミー占い師です' : 'ダミーに設定'}">
+                                ${ft.isDummy ? '✅ ダミー' : '➕ ダミー'}
+                            </button>
+                            <button class="btn ${ft.notifyEmail ? 'btn-success' : 'btn-secondary'}" 
+                                    onclick="toggleNotify('${ft.id}', ${!!ft.notifyEmail})" 
+                                    style="font-size: 12px; padding: 4px 8px;"
+                                    title="${ft.notifyEmail ? 'メール通知ON' : 'メール通知OFF'}">
+                                ${ft.notifyEmail ? '🔔 ON' : '🔕 OFF'}
+                            </button>
+                            <button class="btn ${ft.isDummy ? 'btn-primary' : 'btn-warning'}" 
+                                    onclick="loginAsFortuneTeller('${ft.id}', '${ft.name}')" 
+                                    style="font-size: 12px; padding: 4px 8px; width: 100%;"
+                                    title="${ft.isDummy ? 'この占い師として活動' : 'なりすましログイン（注意）'}">
+                                ${ft.isDummy ? '✨ この占い師で活動' : '⚠️ なりすまし'}
+                            </button>
+                            <button class="btn ${ft.ratingFixed ? 'btn-danger' : 'btn-primary'}" onclick="fixRating('${ft.id}', ${ft.averageRating || 0}, ${!!ft.ratingFixed})" style="font-size: 12px; padding: 4px 8px;" title="${ft.ratingFixed ? '評価の固定を解除します' : '評価を固定します'}">
+                                ${ft.ratingFixed ? '⭐ 解除' : '⭐ 固定'}
+                            </button>
+                            <button class="btn btn-primary" onclick="showManageReviewCountModal('${ft.id}', '${ft.name || '占い師'}', ${ft.baseReviewCount || 0})" style="font-size: 12px; padding: 4px 8px;" title="レビュー数の基準値を設定します">
+                                🔢 レビュー数
+                            </button>
+                            <button class="btn ${ft.fixedCommissionRate ? 'btn-danger' : 'btn-success'}" onclick="fixCommission('${ft.id}', ${commissionRate}, ${!!ft.fixedCommissionRate})" style="font-size: 12px; padding: 4px 8px;" title="${ft.fixedCommissionRate ? '報酬率の固定を解除します' : '報酬率を固定します'}">
+                                ${ft.fixedCommissionRate ? '💰 解除' : '💰 固定'}
+                            </button>
+                            <button class="btn btn-danger" onclick="deleteFortuneTeller('${ft.id}', '${ft.email || ''}')" style="font-size: 12px; padding: 4px 8px;" title="この占い師を完全に削除します(Firebase認証とデータベース)">
+                                🗑️ 削除
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // カード表示
+            cardsGrid.innerHTML = '';
+            fortuneTellers.forEach(ft => {
+                let statusText = '不明';
+                let statusClass = 'inactive';
+                if (ft.status === 'available') {
+                    statusText = '⚡ 待機中';
+                    statusClass = 'active';
+                } else if (ft.status === 'accepting') {
+                    statusText = '📝 受付中';
+                    statusClass = 'active';
+                } else if (ft.status === 'stopped') {
+                    statusText = '⏸️ 停止中';
+                    statusClass = 'inactive';
+                }
+
+                // 報酬率計算
+                let commissionRate;
+                if (ft.fixedCommissionRate) {
+                    commissionRate = ft.fixedCommissionRate;
+                } else {
+                    const previousRevenue = ft.previousMonthRevenue || 0;
+                    if (previousRevenue >= 270000) commissionRate = 40;
+                    else if (previousRevenue >= 210000) commissionRate = 38;
+                    else if (previousRevenue >= 150000) commissionRate = 36;
+                    else if (previousRevenue >= 90000) commissionRate = 34;
+                    else if (previousRevenue >= 30000) commissionRate = 32;
+                    else commissionRate = 30;
+                }
+
+                const card = document.createElement('div');
+                card.className = 'ft-card';
+                card.innerHTML = `
+                    <div class="ft-card-header">
+                        <div>
+                            <div class="ft-card-name">${ft.name || '-'}</div>
+                            <div class="ft-card-email">${ft.email || '-'}</div>
+                        </div>
+                        <span class="ft-card-status ${statusClass}">${statusText}</span>
+                    </div>
+                    <div class="ft-card-info">
+                        <div class="ft-card-info-row">
+                            <span class="ft-card-info-label">専門分野</span>
+                            <span class="ft-card-info-value">${ft.specialty || '-'}</span>
+                        </div>
+                        <div class="ft-card-info-row">
+                            <span class="ft-card-info-label">料金</span>
+                            <span class="ft-card-info-value"><strong>${ft.price || 10}pt</strong>/文字</span>
+                        </div>
+                        <div class="ft-card-info-row">
+                            <span class="ft-card-info-label">評価</span>
+                            <span class="ft-card-info-value">
+                                <span class="star-display">⭐ ${ft.averageRating || 0}</span>
+                                ${ft.ratingFixed ? '<span class="fixed-badge">🔒 固定</span>' : ''}
+                            </span>
+                        </div>
+                        <div class="ft-card-info-row">
+                            <span class="ft-card-info-label">報酬率</span>
+                            <span class="ft-card-info-value">
+                                ${commissionRate}%
+                                ${ft.fixedCommissionRate ? '<span class="fixed-badge">🔒 固定</span>' : ''}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="ft-card-actions">
+                        <button class="btn btn-primary" onclick="editPrice('${ft.id}', '${ft.name}', ${ft.price || 10})" title="料金を変更" style="width: 100%; margin-bottom: 4px;">
+                            💰 料金変更
+                        </button>
+                        <button class="btn ${ft.isDummy ? 'btn-success' : 'btn-secondary'}" onclick="toggleDummy('${ft.id}', ${!!ft.isDummy})" title="${ft.isDummy ? 'ダミー占い師です' : 'ダミーに設定'}" style="flex: 1;">
+                            ${ft.isDummy ? '✅ ダミー' : '➕ ダミー'}
+                        </button>
+                        <button class="btn ${ft.notifyEmail ? 'btn-success' : 'btn-secondary'}" onclick="toggleNotify('${ft.id}', ${!!ft.notifyEmail})" title="${ft.notifyEmail ? 'メール通知ON' : 'メール通知OFF'}" style="flex: 1;">
+                            ${ft.notifyEmail ? '🔔 ON' : '🔕 OFF'}
+                        </button>
+                        <button class="btn ${ft.isDummy ? 'btn-primary' : 'btn-warning'}" onclick="loginAsFortuneTeller('${ft.id}', '${ft.name}')" title="${ft.isDummy ? 'この占い師として活動' : 'なりすましログイン（注意）'}" style="width: 100%; margin-top: 4px;">
+                            ${ft.isDummy ? '✨ この占い師で活動' : '⚠️ なりすまし'}
+                        </button>
+                        <button class="btn ${ft.ratingFixed ? 'btn-danger' : 'btn-primary'}" onclick="fixRating('${ft.id}', ${ft.averageRating || 0}, ${!!ft.ratingFixed})" title="${ft.ratingFixed ? '評価の固定を解除' : '評価を固定'}">
+                            ${ft.ratingFixed ? '⭐ 解除' : '⭐ 固定'}
+                        </button>
+                        <button class="btn ${ft.fixedCommissionRate ? 'btn-danger' : 'btn-success'}" onclick="fixCommission('${ft.id}', ${commissionRate}, ${!!ft.fixedCommissionRate})" title="${ft.fixedCommissionRate ? '報酬率の固定を解除' : '報酬率を固定'}">
+                            ${ft.fixedCommissionRate ? '💰 解除' : '💰 固定'}
+                        </button>
+                        <button class="btn btn-danger" onclick="deleteFortuneTeller('${ft.id}', '${ft.email || ''}')" title="この占い師を完全に削除">
+                            🗑️ 削除
+                        </button>
+                    </div>
+                `;
+                cardsGrid.appendChild(card);
+            });
+        }
+
+        // 評価固定/解除
+        async function fixRating(ftId, currentRating, isFixed) {
+            if (isFixed) {
+                // 固定解除
+                if (!confirm('評価の固定を解除しますか？\n解除すると実際のレビューから自動計算されます。')) return;
+                
+                try {
+                    const ftRef = window.firebaseDoc(window.firebaseDB, 'fortuneTellers', ftId);
+                    await window.firebaseSetDoc(ftRef, {
+                        ratingFixed: false
+                    }, { merge: true });
+                    
+                    alert('評価固定を解除しました');
+                    loadData();
+                } catch (error) {
+                    console.error('評価固定解除エラー:', error);
+                    alert('評価固定の解除に失敗しました');
+                }
+            } else {
+                // 固定
+                const newRating = prompt('固定する評価を入力してください（0～5）\n\n例: 4.8 と入力すると⭐4.8で固定されます\n小数点1桁まで入力可能です', currentRating);
+                if (newRating === null) return;
+                
+                const rating = parseFloat(newRating);
+                if (isNaN(rating) || rating < 0 || rating > 5) {
+                    alert('0から5の数値を入力してください\n例: 4.8');
+                    return;
+                }
+                
+                try {
+                    const ftRef = window.firebaseDoc(window.firebaseDB, 'fortuneTellers', ftId);
+                    await window.firebaseSetDoc(ftRef, {
+                        averageRating: rating,
+                        ratingFixed: true
+                    }, { merge: true });
+                    
+                    alert(`評価を⭐${rating}に固定しました`);
+                    loadData();
+                } catch (error) {
+                    console.error('評価固定エラー:', error);
+                    alert('評価の固定に失敗しました');
+                }
+            }
+        }
+
+        // 報酬率固定/解除
+        async function fixCommission(ftId, currentRate, isFixed) {
+            if (isFixed) {
+                // 固定解除
+                if (!confirm('報酬率の固定を解除しますか？\n解除すると通常の報酬率計算（30%～40%）に戻ります。')) return;
+                
+                try {
+                    const ftRef = window.firebaseDoc(window.firebaseDB, 'fortuneTellers', ftId);
+                    await window.firebaseSetDoc(ftRef, {
+                        fixedCommissionRate: null
+                    }, { merge: true });
+                    
+                    alert('報酬率固定を解除しました');
+                    loadData();
+                } catch (error) {
+                    console.error('報酬率固定解除エラー:', error);
+                    alert('報酬率固定の解除に失敗しました');
+                }
+            } else {
+                // 固定
+                const newRate = prompt('固定する報酬率を入力してください（%）\n\n例: 60 と入力すると60%固定になります\n通常は30%～40%です', currentRate);
+                if (newRate === null) return;
+                
+                const rate = parseFloat(newRate);
+                if (isNaN(rate) || rate < 0 || rate > 100) {
+                    alert('0から100の数値を入力してください');
+                    return;
+                }
+                
+                try {
+                    const ftRef = window.firebaseDoc(window.firebaseDB, 'fortuneTellers', ftId);
+                    await window.firebaseSetDoc(ftRef, {
+                        fixedCommissionRate: rate
+                    }, { merge: true });
+                    
+                    alert('報酬率を固定しました');
+                    loadData();
+                } catch (error) {
+                    console.error('報酬率固定エラー:', error);
+                    alert('報酬率の固定に失敗しました');
+                }
+            }
+        }
+
+        // 占い師を削除
+        async function deleteFortuneTeller(ftId, email) {
+            if (!confirm(`本当にこの占い師を削除しますか?\n\n占い師: ${email}\n\n⚠️ 警告:\n・Firestoreのデータがすべて削除されます\n・関連するチャット、レビュー、売上データも削除されます\n・この操作は取り消せません\n\n※ Firebase Authenticationからのユーザー削除は、Firebaseコンソールで手動で行う必要があります`)) {
+                return;
+            }
+
+            try {
+                // 1. Firestoreのfortunetellersコレクションから削除
+                const ftRef = window.firebaseDoc(window.firebaseDB, 'fortuneTellers', ftId);
+                await window.firebaseDeleteDoc(ftRef);
+                console.log('占い師データを削除しました');
+
+                // 2. この占い師のチャットを削除
+                const chatsRef = window.firebaseCollection(window.firebaseDB, 'chats');
+                const chatsQuery = window.firebaseQuery(
+                    chatsRef,
+                    window.firebaseWhere('fortuneTellerId', '==', ftId)
+                );
+                const chatsSnapshot = await window.firebaseGetDocs(chatsQuery);
+                for (const chatDoc of chatsSnapshot.docs) {
+                    await window.firebaseDeleteDoc(chatDoc.ref);
+                }
+                console.log('関連チャットを削除しました');
+
+                // 3. この占い師のレビューを削除
+                const reviewsRef = window.firebaseCollection(window.firebaseDB, 'reviews');
+                const reviewsQuery = window.firebaseQuery(
+                    reviewsRef,
+                    window.firebaseWhere('fortuneTellerId', '==', ftId)
+                );
+                const reviewsSnapshot = await window.firebaseGetDocs(reviewsQuery);
+                for (const reviewDoc of reviewsSnapshot.docs) {
+                    await window.firebaseDeleteDoc(reviewDoc.ref);
+                }
+                console.log('関連レビューを削除しました');
+
+                alert('占い師を削除しました。\n\n重要: Firebase Authentication（認証）からのユーザー削除は、Firebaseコンソール > Authentication > Users から手動で削除してください。');
+                loadData();
+            } catch (error) {
+                console.error('占い師削除エラー:', error);
+                alert('占い師の削除に失敗しました: ' + error.message);
+            }
+        }
+
+        // ユーザーにポイント追加
+        async function addPointsToUser(userId, userName) {
+            const points = prompt(`${userName}さんに追加するポイント数を入力してください:`, '100');
+            
+            if (points === null) return; // キャンセル
+            
+            const pointsNum = parseInt(points);
+            if (isNaN(pointsNum) || pointsNum <= 0) {
+                alert('正しいポイント数を入力してください');
+                return;
+            }
+            
+            if (!confirm(`${userName}さんに${pointsNum}ポイントを追加しますか？`)) {
+                return;
+            }
+            
+            try {
+                // ユーザー情報を取得
+                const userRef = window.firebaseDoc(window.firebaseDB, 'users', userId);
+                const userDoc = await window.firebaseGetDoc(userRef);
+                
+                if (!userDoc.exists()) {
+                    alert('ユーザーが見つかりません');
+                    return;
+                }
+                
+                const userData = userDoc.data();
+                // 必ず数値として処理（これが最重要！）
+                const currentPoints = Number(userData.points) || 0;
+                const addPoints = Number(pointsNum) || 0;
+                const newPoints = currentPoints + addPoints;
+                
+                // ポイントを更新
+                await window.firebaseUpdateDoc(userRef, {
+                    points: newPoints
+                });
+                
+                alert(`${userName}さんのポイントを更新しました\n${currentPoints}pt → ${newPoints}pt`);
+                
+                // データを再読み込み
+                loadData();
+            } catch (error) {
+                console.error('ポイント追加エラー:', error);
+                alert('ポイントの追加に失敗しました: ' + error.message);
+            }
+        }
+
+        // ダミー設定の切り替え
+        async function toggleDummy(ftId, currentIsDummy) {
+            const newIsDummy = !currentIsDummy;
+            const action = newIsDummy ? 'ダミー占い師に設定' : 'ダミー設定を解除';
+            
+            if (!confirm(`${action}しますか？`)) {
+                return;
+            }
+            
+            try {
+                const ftRef = window.firebaseDoc(window.firebaseDB, 'fortuneTellers', ftId);
+                await window.firebaseUpdateDoc(ftRef, {
+                    isDummy: newIsDummy
+                });
+                
+                alert(`${action}しました`);
+                loadData();
+            } catch (error) {
+                console.error('ダミー設定エラー:', error);
+                alert('設定の変更に失敗しました');
+            }
+        }
+
+        // メール通知の切り替え
+        async function toggleNotify(ftId, currentNotify) {
+            const newNotify = !currentNotify;
+            const action = newNotify ? 'メール通知をON' : 'メール通知をOFF';
+            
+            if (!confirm(`${action}にしますか？`)) {
+                return;
+            }
+            
+            try {
+                const ftRef = window.firebaseDoc(window.firebaseDB, 'fortuneTellers', ftId);
+                await window.firebaseUpdateDoc(ftRef, {
+                    notifyEmail: newNotify
+                });
+                
+                alert(`${action}にしました`);
+                loadData();
+            } catch (error) {
+                console.error('通知設定エラー:', error);
+                alert('設定の変更に失敗しました');
+            }
+        }
+
+        // 料金変更
+        async function editPrice(ftId, ftName, currentPrice) {
+            const newPrice = prompt(`${ftName}さんの料金を変更します\n\n1文字あたりのポイント数を入力してください:`, currentPrice || 10);
+            
+            if (newPrice === null) return; // キャンセル
+            
+            const priceNum = parseInt(newPrice);
+            if (isNaN(priceNum) || priceNum <= 0) {
+                alert('正しい料金を入力してください（1以上の数値）');
+                return;
+            }
+            
+            if (!confirm(`${ftName}さんの料金を ${priceNum}pt/文字 に変更しますか？`)) {
+                return;
+            }
+            
+            try {
+                const ftRef = window.firebaseDoc(window.firebaseDB, 'fortuneTellers', ftId);
+                await window.firebaseUpdateDoc(ftRef, {
+                    price: priceNum
+                });
+                
+                alert(`料金を ${priceNum}pt/文字 に変更しました`);
+                loadData();
+            } catch (error) {
+                console.error('料金変更エラー:', error);
+                alert('料金の変更に失敗しました: ' + error.message);
+            }
+        }
+
+        // 占い師としてログイン（なりすまし）
+        function loginAsFortuneTeller(ftId, ftName) {
+            if (!confirm(`「${ftName}」としてログインしますか？\n\nこの操作は記録されます。`)) {
+                return;
+            }
+            
+            // localStorageを書き換えて占い師としてログイン
+            localStorage.setItem('currentUser', JSON.stringify({
+                uid: ftId,
+                type: 'fortune-teller',
+                name: ftName,
+                _impersonatedBy: 'admin',
+                _impersonatedAt: new Date().toISOString()
+            }));
+            
+            // 占い師ロビーに遷移
+            window.location.href = 'cupids-fortune-lobby.html';
+        }
+
+        // レビューを読み込み
+        async function loadReviews() {
+            try {
+                const reviewsRef = window.firebaseCollection(window.firebaseDB, 'reviews');
+                const q = window.firebaseQuery(
+                    reviewsRef,
+                    window.firebaseOrderBy('createdAt', 'desc')
+                );
+                const snapshot = await window.firebaseGetDocs(q);
+                
+                const reviews = [];
+                for (const docSnapshot of snapshot.docs) {
+                    const review = docSnapshot.data();
+                    
+                    // 占い師名を取得
+                    const ftDoc = await window.firebaseGetDoc(
+                        window.firebaseDoc(window.firebaseDB, 'fortuneTellers', review.fortuneTellerId)
+                    );
+                    const ftName = ftDoc.exists() ? ftDoc.data().name : '不明';
+                    
+                    // お客様名を取得
+                    const clientDoc = await window.firebaseGetDoc(
+                        window.firebaseDoc(window.firebaseDB, 'users', review.clientId)
+                    );
+                    const clientName = clientDoc.exists() ? clientDoc.data().name : '不明';
+                    
+                    reviews.push({
+                        id: docSnapshot.id,
+                        ...review,
+                        fortuneTellerName: ftName,
+                        clientName: clientName
+                    });
+                }
+                
+                displayReviews(reviews);
+            } catch (error) {
+                console.error('レビュー読み込みエラー:', error);
+            }
+        }
+
+        // レビューテーブルを表示
+        function displayReviews(reviews) {
+            const tbody = document.getElementById('reviewsList');
+            
+            if (reviews.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #999;">レビューがありません</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = '';
+            reviews.forEach(review => {
+                const tr = document.createElement('tr');
+                
+                const stars = '⭐'.repeat(review.rating);
+                const date = new Date(review.createdAt).toLocaleDateString('ja-JP');
+                
+                const shortComment = review.comment 
+                    ? (review.comment.length > 30 ? review.comment.substring(0, 30) + '...' : review.comment)
+                    : '<span style="color: #999;">なし</span>';
+                
+                tr.innerHTML = `
+                    <td><strong>${review.fortuneTellerName}</strong></td>
+                    <td>${review.clientName}</td>
+                    <td class="star-display">${stars} <span style="color: #666;">(${review.rating})</span></td>
+                    <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${review.comment || 'なし'}">${shortComment}</td>
+                    <td style="font-size: 13px; color: #666;">${date}</td>
+                    <td>
+                        <button class="btn btn-danger" onclick="deleteReview('${review.id}', '${review.fortuneTellerId}')" title="このレビューを削除します。削除後は評価が自動再計算されます。">
+                            🗑️ 削除
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // レビューを削除
+        async function deleteReview(reviewId, fortuneTellerId) {
+            if (!confirm('このレビューを削除しますか？\n削除すると占い師の平均評価が再計算されます。')) {
+                return;
+            }
+            
+            try {
+                // レビューを削除
+                const reviewRef = window.firebaseDoc(window.firebaseDB, 'reviews', reviewId);
+                await window.firebaseDeleteDoc(reviewRef);
+                
+                // 占い師の平均評価を再計算
+                await recalculateFortuneTellerRating(fortuneTellerId);
+                
+                alert('レビューを削除しました');
+                loadData();
+            } catch (error) {
+                console.error('レビュー削除エラー:', error);
+                alert('レビューの削除に失敗しました');
+            }
+        }
+
+        // 占い師の平均評価を再計算
+        async function recalculateFortuneTellerRating(ftId) {
+            try {
+                const reviewsRef = window.firebaseCollection(window.firebaseDB, 'reviews');
+                const q = window.firebaseQuery(
+                    reviewsRef,
+                    window.firebaseWhere('fortuneTellerId', '==', ftId)
+                );
+                const snapshot = await window.firebaseGetDocs(q);
+
+                let totalRating = 0;
+                let reviewCount = 0;
+
+                snapshot.forEach((doc) => {
+                    const review = doc.data();
+                    totalRating += review.rating;
+                    reviewCount++;
+                });
+
+                const averageRating = reviewCount > 0 ? (totalRating / reviewCount).toFixed(1) : 0;
+
+                const ftRef = window.firebaseDoc(window.firebaseDB, 'fortuneTellers', ftId);
+                await window.firebaseSetDoc(ftRef, {
+                    averageRating: parseFloat(averageRating),
+                    totalReviews: reviewCount
+                }, { merge: true });
+            } catch (error) {
+                console.error('評価再計算エラー:', error);
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('currentUser');
+            window.location.href = 'cupids-top.html';
+        }
+
+        // 画像プレビュー
+        document.getElementById('ftImage').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('previewImg').src = e.target.result;
+                    document.getElementById('imagePreview').style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // 円のサイズ調整スライダー
+        document.getElementById('circleSize').addEventListener('input', function(e) {
+            const size = e.target.value;
+            document.getElementById('circleSizeValue').textContent = size + '%';
+            document.getElementById('previewCircleFill').setAttribute('r', size + '%');
+            document.getElementById('previewCircleStroke').setAttribute('r', size + '%');
+        });
+
+        // 画像位置調整
+        let imageOffsetX = 0;
+        let imageOffsetY = 0;
+        let imageScale = 1;
+        
+        function updateImageTransform() {
+            const img = document.getElementById('previewImg');
+            img.style.transform = `translate(${imageOffsetX}px, ${imageOffsetY}px) scale(${imageScale})`;
+        }
+        
+        function moveImage(direction) {
+            const step = 10; // 移動量(px)
+            
+            switch(direction) {
+                case 'up':
+                    imageOffsetY -= step;
+                    break;
+                case 'down':
+                    imageOffsetY += step;
+                    break;
+                case 'left':
+                    imageOffsetX -= step;
+                    break;
+                case 'right':
+                    imageOffsetX += step;
+                    break;
+            }
+            
+            updateImageTransform();
+        }
+        
+        function resetImagePosition() {
+            imageOffsetX = 0;
+            imageOffsetY = 0;
+            imageScale = 1;
+            document.getElementById('imageScale').value = 100;
+            document.getElementById('imageScaleValue').textContent = '100%';
+            updateImageTransform();
+        }
+        
+        // 画像サイズ調整スライダー
+        document.getElementById('imageScale').addEventListener('input', function(e) {
+            const scale = e.target.value;
+            imageScale = scale / 100;
+            document.getElementById('imageScaleValue').textContent = scale + '%';
+            updateImageTransform();
+        });
+        
+        // ドラッグで画像を移動
+        let isDragging = false;
+        let startX, startY;
+        
+        document.getElementById('previewImg').addEventListener('mousedown', function(e) {
+            isDragging = true;
+            startX = e.clientX - imageOffsetX;
+            startY = e.clientY - imageOffsetY;
+            e.preventDefault();
+        });
+        
+        document.addEventListener('mousemove', function(e) {
+            if (isDragging) {
+                imageOffsetX = e.clientX - startX;
+                imageOffsetY = e.clientY - startY;
+                updateImageTransform();
+            }
+        });
+        
+        document.addEventListener('mouseup', function() {
+            isDragging = false;
+        });
+
+        // 占い師登録フォーム
+        document.getElementById('addFortuneTellerForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('ftName').value;
+            const email = document.getElementById('ftEmail').value;
+            const password = document.getElementById('ftPassword').value;
+            const price = parseInt(document.getElementById('ftPrice').value);
+            const message = document.getElementById('ftMessage').value;
+            const imageFile = document.getElementById('ftImage').files[0];
+            
+            if (!confirm(`占い師「${name}」を登録しますか？`)) {
+                return;
+            }
+            
+            let userCredential = null;
+            
+            try {
+                // Firebase Authenticationでユーザーを作成
+                userCredential = await window.firebaseCreateUser(window.firebaseAuth, email, password);
+                const uid = userCredential.user.uid;
+                
+                console.log('✅ Firebase Auth ユーザー作成成功:', uid);
+                
+                let imageUrl = '';
+                
+                // 画像をアップロード
+                if (imageFile) {
+                    try {
+                        console.log('📤 画像アップロード開始...');
+                        const storageRef = window.firebaseStorageRef(window.firebaseStorage, `fortuneTellers/${uid}/${imageFile.name}`);
+                        await window.firebaseUploadBytes(storageRef, imageFile);
+                        imageUrl = await window.firebaseGetDownloadURL(storageRef);
+                        console.log('✅ 画像アップロード完了:', imageUrl);
+                    } catch (storageError) {
+                        console.error('⚠️ 画像アップロードエラー（画像なしで続行）:', storageError);
+                        alert('画像のアップロードに失敗しましたが、画像なしで登録を続行します。\n\n後からプロフィール編集で画像を追加できます。');
+                        imageUrl = ''; // 画像なしで続行
+                    }
+                }
+                
+                // Firestoreに占い師情報を保存
+                console.log('💾 Firestore保存開始...');
+                const ftRef = window.firebaseDoc(window.firebaseDB, 'fortuneTellers', uid);
+                await window.firebaseSetDoc(ftRef, {
+                    uid: uid,
+                    name: name,
+                    email: email,
+                    type: 'fortune-teller',
+                    price: price,
+                    message: message,
+                    imageUrl: imageUrl,
+                    photoURL: imageUrl,
+                    status: 'stopped',
+                    averageRating: 0,
+                    totalReviews: 0,
+                    currentMonthSales: 0,
+                    isDummy: false,
+                    notifyEmail: false,
+                    createdAt: new Date().toISOString()
+                });
+                
+                console.log('✅ Firestore保存完了');
+                
+                alert(`占い師「${name}」を登録しました！\n\nログイン情報:\nメール: ${email}\nパスワード: ${password}\n\n※占い師にこの情報を伝えてください`);
+                
+                // フォームをリセット
+                document.getElementById('addFortuneTellerForm').reset();
+                document.getElementById('imagePreview').style.display = 'none';
+                
+                // データを再読み込み
+                loadData();
+                
+            } catch (error) {
+                console.error('❌ 占い師登録エラー:', error);
+                
+                // エラーが発生した場合、作成されたAuthユーザーを削除
+                if (userCredential && userCredential.user) {
+                    try {
+                        console.log('🗑️ エラーのためAuthユーザーを削除します...');
+                        await userCredential.user.delete();
+                        console.log('✅ Authユーザー削除完了');
+                    } catch (deleteError) {
+                        console.error('❌ Authユーザー削除エラー:', deleteError);
+                    }
+                }
+                
+                if (error.code === 'auth/email-already-in-use') {
+                    alert('このメールアドレスは既に使用されています');
+                } else if (error.code === 'auth/weak-password') {
+                    alert('パスワードは6文字以上で設定してください');
+                } else {
+                    alert('登録エラー: ' + error.message + '\n\n詳細はコンソールを確認してください');
+                }
+            }
+        });
+
+        // 売上ランキングを表示
+        function displayRanking(fortuneTellers) {
+            const rankingList = document.getElementById('rankingList');
+            
+            if (!fortuneTellers || fortuneTellers.length === 0) {
+                rankingList.innerHTML = '<div style="text-align: center; color: #999; padding: 40px;">占い師がいません</div>';
+                return;
+            }
+
+            // 今月の売上でソート
+            const sorted = [...fortuneTellers].sort((a, b) => {
+                const salesA = a.currentMonthRevenue || 0;
+                const salesB = b.currentMonthRevenue || 0;
+                return salesB - salesA;
+            });
+
+            rankingList.innerHTML = '';
+            
+            sorted.forEach((ft, index) => {
+                const sales = ft.currentMonthRevenue || 0;
+                
+                // 報酬率を計算
+                let commissionRate;
+                if (ft.fixedCommissionRate) {
+                    commissionRate = ft.fixedCommissionRate;
+                } else {
+                    const previousRevenue = ft.previousMonthRevenue || 0;
+                    if (previousRevenue >= 270000) {
+                        commissionRate = 40;
+                    } else if (previousRevenue >= 210000) {
+                        commissionRate = 38;
+                    } else if (previousRevenue >= 150000) {
+                        commissionRate = 36;
+                    } else if (previousRevenue >= 90000) {
+                        commissionRate = 34;
+                    } else if (previousRevenue >= 30000) {
+                        commissionRate = 32;
+                    } else {
+                        commissionRate = 30;
+                    }
+                }
+
+                // メダルアイコン
+                let medalIcon = '';
+                if (index === 0) medalIcon = '🥇';
+                else if (index === 1) medalIcon = '🥈';
+                else if (index === 2) medalIcon = '🥉';
+
+                const rankingItem = document.createElement('div');
+                rankingItem.className = 'ranking-item';
+                rankingItem.innerHTML = `
+                    ${medalIcon ? `<div class="ranking-medal">${medalIcon}</div>` : `<div class="ranking-number">${index + 1}</div>`}
+                    <div class="ranking-info">
+                        <div class="ranking-name">${ft.name || '占い師'}</div>
+                        <div class="ranking-email">${ft.email || ''}</div>
+                    </div>
+                    <div class="ranking-sales">
+                        <div class="ranking-amount">¥${sales.toLocaleString()}</div>
+                        <div class="ranking-commission">報酬率: ${commissionRate}%</div>
+                    </div>
+                `;
+                rankingList.appendChild(rankingItem);
+            });
+        }
+
+        // レビュー追加モーダルを表示
+        async function showAddReviewModal() {
+            const modal = document.getElementById('addReviewModal');
+            const select = document.getElementById('reviewFortuneTeller');
+            
+            // 占い師リストを取得
+            try {
+                const ftRef = window.firebaseCollection(window.firebaseDB, 'fortuneTellers');
+                const snapshot = await window.firebaseGetDocs(ftRef);
+                
+                select.innerHTML = '<option value="">選択してください</option>';
+                snapshot.forEach(doc => {
+                    const ft = doc.data();
+                    const option = document.createElement('option');
+                    option.value = doc.id;
+                    option.textContent = ft.name || ft.email || doc.id;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('占い師リスト取得エラー:', error);
+            }
+            
+            modal.classList.add('active');
+        }
+
+        // レビュー追加モーダルを閉じる
+        function closeAddReviewModal() {
+            const modal = document.getElementById('addReviewModal');
+            modal.classList.remove('active');
+            // フォームをリセット
+            document.getElementById('reviewFortuneTeller').value = '';
+            document.getElementById('reviewClientName').value = '匿名';
+            document.getElementById('reviewRating').value = '5';
+            document.getElementById('reviewComment').value = '';
+        }
+
+        // レビューを追加
+        async function submitAddReview() {
+            const fortuneTellerId = document.getElementById('reviewFortuneTeller').value;
+            const clientName = document.getElementById('reviewClientName').value.trim() || '匿名';
+            const rating = parseInt(document.getElementById('reviewRating').value);
+            const comment = document.getElementById('reviewComment').value.trim();
+            
+            if (!fortuneTellerId) {
+                alert('占い師を選択してください');
+                return;
+            }
+            
+            try {
+                // レビューを追加
+                const reviewId = `admin_${Date.now()}`;
+                const reviewRef = window.firebaseDoc(window.firebaseDB, 'reviews', reviewId);
+                
+                await window.firebaseSetDoc(reviewRef, {
+                    reviewId: reviewId,
+                    fortuneTellerId: fortuneTellerId,
+                    clientId: 'admin',
+                    clientName: clientName,
+                    rating: rating,
+                    comment: comment,
+                    createdAt: new Date().toISOString(),
+                    isAdminReview: true
+                });
+                
+                // 占い師の平均評価を再計算
+                await updateFortuneTellerRating(fortuneTellerId);
+                
+                alert('レビューを追加しました!');
+                closeAddReviewModal();
+                loadData(); // データを再読み込み
+            } catch (error) {
+                console.error('レビュー追加エラー:', error);
+                alert('レビューの追加に失敗しました');
+            }
+        }
+
+        // 占い師の平均評価を再計算
+        async function updateFortuneTellerRating(ftId) {
+            try {
+                // この占い師のすべてのレビューを取得
+                const reviewsRef = window.firebaseCollection(window.firebaseDB, 'reviews');
+                const q = window.firebaseQuery(
+                    reviewsRef,
+                    window.firebaseWhere('fortuneTellerId', '==', ftId)
+                );
+                const querySnapshot = await window.firebaseGetDocs(q);
+
+                let totalRating = 0;
+                let reviewCount = 0;
+
+                querySnapshot.forEach((doc) => {
+                    const review = doc.data();
+                    totalRating += review.rating;
+                    reviewCount++;
+                });
+
+                // 基準値を取得
+                const ftRef = window.firebaseDoc(window.firebaseDB, 'fortuneTellers', ftId);
+                const ftDoc = await window.firebaseGetDoc(ftRef);
+                const baseReviewCount = ftDoc.exists() ? (ftDoc.data().baseReviewCount || 0) : 0;
+                
+                // 実際のレビュー数と基準値を合算
+                const displayReviewCount = reviewCount + baseReviewCount;
+
+                // 平均評価を計算
+                const averageRating = reviewCount > 0 ? (totalRating / reviewCount).toFixed(1) : 0;
+
+                // 占い師データを更新
+                await window.firebaseSetDoc(ftRef, {
+                    averageRating: parseFloat(averageRating),
+                    totalReviews: displayReviewCount, // 表示用のレビュー数
+                    actualReviewCount: reviewCount // 実際のレビュー数（内部管理用）
+                }, { merge: true });
+
+                console.log(`✅ 評価更新: ${averageRating} (レビュー${displayReviewCount}件)`);
+            } catch (error) {
+                console.error('評価更新エラー:', error);
+            }
+        }
+
+        // レビュー数管理モーダルを表示
+        let currentManagingFortuneTellerId = null;
+
+        function showManageReviewCountModal(ftId, ftName, currentCount) {
+            currentManagingFortuneTellerId = ftId;
+            const modal = document.getElementById('manageReviewCountModal');
+            const label = document.getElementById('manageReviewCountLabel');
+            const input = document.getElementById('manageReviewCount');
+            
+            label.textContent = `占い師: ${ftName}`;
+            input.value = currentCount;
+            
+            modal.classList.add('active');
+        }
+
+        // レビュー数管理モーダルを閉じる
+        function closeManageReviewCountModal() {
+            const modal = document.getElementById('manageReviewCountModal');
+            modal.classList.remove('active');
+            currentManagingFortuneTellerId = null;
+        }
+
+        // レビュー数を保存
+        async function submitManageReviewCount() {
+            if (!currentManagingFortuneTellerId) {
+                alert('エラー: 占い師IDが見つかりません');
+                return;
+            }
+            
+            const count = parseInt(document.getElementById('manageReviewCount').value) || 0;
+            
+            if (count < 0) {
+                alert('レビュー数は0以上で入力してください');
+                return;
+            }
+            
+            try {
+                const ftRef = window.firebaseDoc(window.firebaseDB, 'fortuneTellers', currentManagingFortuneTellerId);
+                await window.firebaseSetDoc(ftRef, {
+                    baseReviewCount: count
+                }, { merge: true });
+                
+                // 評価を再計算（実際のレビュー数 + 基準値）
+                await updateFortuneTellerRating(currentManagingFortuneTellerId);
+                
+                alert('レビュー数の基準値を保存しました!');
+                closeManageReviewCountModal();
+                loadData(); // データを再読み込み
+            } catch (error) {
+                console.error('レビュー数保存エラー:', error);
+                alert('レビュー数の保存に失敗しました');
+            }
+        }
+
+        // 鑑定中ダミー管理
+        let currentDummyFtId = null;
+
+        function showDummyClientsModal(ftId, ftName, currentCount) {
+            currentDummyFtId = ftId;
+            document.getElementById('dummyClientsLabel').textContent = `占い師: ${ftName}`;
+            document.getElementById('dummyClientsCount').value = currentCount || 0;
+            document.getElementById('dummyClientsModal').classList.add('active');
+        }
+
+        function closeDummyClientsModal() {
+            document.getElementById('dummyClientsModal').classList.remove('active');
+            currentDummyFtId = null;
+        }
+
+        async function submitDummyClients() {
+            if (!currentDummyFtId) return;
+            
+            const count = parseInt(document.getElementById('dummyClientsCount').value) || 0;
+            
+            if (count < 0) {
+                alert('ダミー人数は0以上で入力してください');
+                return;
+            }
+            
+            try {
+                const ftRef = window.firebaseDoc(window.firebaseDB, 'fortuneTellers', currentDummyFtId);
+                await window.firebaseSetDoc(ftRef, {
+                    dummyActiveClients: count
+                }, { merge: true });
+                
+                alert('✅ 鑑定中ダミー人数を保存しました!');
+                closeDummyClientsModal();
+                loadData();
+            } catch (error) {
+                console.error('ダミー人数保存エラー:', error);
+                alert('ダミー人数の保存に失敗しました');
+            }
+        }
+
+        // Firebase初期化を待ってからデータを読み込む
+        function initializePage() {
+            if (!window.firebaseReady) {
+                // Firebaseがまだ準備できていない場合は、イベントを待つ
+                window.addEventListener('firebaseReady', initializePage, { once: true });
+                return;
+            }
+            
+            console.log('🚀 管理画面初期化開始...');
+            loadData();
+        }
+
+        // 初期化
+        initializePage();
+    </script>
+
+    <!-- レビュー追加モーダル -->
+    <div class="modal" id="addReviewModal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3>➕ レビュー追加</h3>
+                <button class="modal-close" onclick="closeAddReviewModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>占い師を選択</label>
+                    <select id="reviewFortuneTeller" class="form-control">
+                        <option value="">選択してください</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>お客様名（任意）</label>
+                    <input type="text" id="reviewClientName" class="form-control" placeholder="匿名" value="匿名">
+                </div>
+                <div class="form-group">
+                    <label>評価（★1〜5）</label>
+                    <select id="reviewRating" class="form-control">
+                        <option value="5">★★★★★ (5)</option>
+                        <option value="4">★★★★☆ (4)</option>
+                        <option value="3">★★★☆☆ (3)</option>
+                        <option value="2">★★☆☆☆ (2)</option>
+                        <option value="1">★☆☆☆☆ (1)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>コメント（任意）</label>
+                    <textarea id="reviewComment" class="form-control" rows="4" placeholder="レビューコメント"></textarea>
+                </div>
+                <button class="btn btn-primary" onclick="submitAddReview()" style="width: 100%; padding: 12px;">
+                    ✅ レビューを追加
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- レビュー数管理モーダル -->
+    <div class="modal" id="manageReviewCountModal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h3>🔢 レビュー数管理</h3>
+                <button class="modal-close" onclick="closeManageReviewCountModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label id="manageReviewCountLabel">占い師: </label>
+                    <input type="number" id="manageReviewCount" class="form-control" min="0" placeholder="レビュー数を入力">
+                    <small style="color: #666; display: block; margin-top: 8px;">
+                        ※ この数値は表示用の基準値です。<br>
+                        ※ お客様が新規レビューを投稿すると、この数値に+1されます。
+                    </small>
+                </div>
+                <button class="btn btn-primary" onclick="submitManageReviewCount()" style="width: 100%; padding: 12px;">
+                    ✅ 保存
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 鑑定中ダミー管理モーダル -->
+    <div class="modal" id="dummyClientsModal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h3>👥 鑑定中ダミー設定</h3>
+                <button class="modal-close" onclick="closeDummyClientsModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label id="dummyClientsLabel">占い師: </label>
+                    <input type="number" id="dummyClientsCount" class="form-control" min="0" placeholder="ダミー人数を入力">
+                    <small style="color: #666; display: block; margin-top: 8px;">
+                        ※ 実際の鑑定中人数にこの数値が加算されて表示されます。<br>
+                        例: 実際1人鑑定中 + ダミー10人 = 表示11人鑑定中
+                    </small>
+                </div>
+                <button class="btn btn-primary" onclick="submitDummyClients()" style="width: 100%; padding: 12px;">
+                    ✅ 保存
+                </button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+async function toggleFortuneTellerNewMark(ftId, setNew) {
+    try {
+        await window.firebaseUpdateDoc(
+            window.firebaseDoc(window.firebaseDB, "fortuneTellers", ftId),
+            { isNew: setNew }
+        );
+        alert(setNew ? "NEWマークを付与しました" : "NEWマークを解除しました");
+        window.loadData();
+    } catch (error) {
+        console.error("NEWマーク更新エラー:", error);
+        alert("更新に失敗しました");
+    }
+}
