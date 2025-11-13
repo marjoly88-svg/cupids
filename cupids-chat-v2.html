@@ -937,38 +937,6 @@
             }
         }
 
-        // 返信待ちステータスバナーを更新
-        // 【削除】返信待ちバナー更新機能（運用上不要）
-        /*
-        function updateWaitingStatusBanner(lastMessageAt, pointsAtRisk) {
-            const banner = document.getElementById('waitingStatusBanner');
-            const timeDisplay = document.getElementById('waitingTime');
-            
-            if (!banner || !timeDisplay) return;
-            
-            const lastMessageTime = new Date(lastMessageAt);
-            const now = new Date();
-            const hoursPassed = (now - lastMessageTime) / (1000 * 60 * 60);
-            const hoursRemaining = Math.max(0, 24 - hoursPassed);
-            
-            // 経過時間を表示
-            if (hoursPassed < 1) {
-                const minutesPassed = Math.floor(hoursPassed * 60);
-                timeDisplay.innerHTML = `経過時間: ${minutesPassed}分 | 返金対象: <strong>${pointsAtRisk}pt</strong>`;
-            } else {
-                timeDisplay.innerHTML = `経過時間: ${hoursPassed.toFixed(1)}時間 / 残り ${hoursRemaining.toFixed(1)}時間 | 返金対象: <strong>${pointsAtRisk}pt</strong>`;
-            }
-            
-            // バナーを表示（お客様のみ、かつ入室中のみ）
-            if (currentUser.type === 'client' && conversationStatus === 'active') {
-                banner.classList.add('active');
-            } else {
-                banner.classList.remove('active');
-            }
-        }
-        */
-
-
         // 24時間チェックと自動返金処理
         async function checkAndProcessRefund(convRef, convData) {
             try {
@@ -1968,19 +1936,26 @@
                     return;
                 }
                 
-                // お客様の場合は有料チャットタブに、占い師の場合は無料チャットタブに戻る
+                // お客様の場合は「有料チャット」、占い師の場合は「無料チャット」タブに戻す
                 tabs.forEach(t => t.classList.remove('active'));
+                
                 if (currentUser.type === 'client') {
-                    tabs[0].classList.add('active'); // 有料チャット(お客様の場合は0番目)
+                    const paidTab = document.querySelector('.tab[data-tab="paid"]');
+                    if (paidTab) paidTab.classList.add('active');
                 } else {
-                    tabs[0].classList.add('active'); // 無料チャット
+                    const freeTabButton = document.querySelector('.tab[data-tab="free"]');
+                    if (freeTabButton) freeTabButton.classList.add('active');
                 }
+                
                 templatesArea.classList.remove('active');
                 
                 // メッセージ入力を再度有効化
                 messageInput.disabled = false;
                 messageInput.placeholder = 'メッセージを入力...';
                 sendButton.disabled = false;
+                
+                // タブ切り替え後にポイントチェック
+                checkPointsAvailability();
             });
         });
 
@@ -2015,16 +1990,6 @@
                 // テキストエリアの高さも調整
                 messageInput.style.height = 'auto';
                 messageInput.style.height = Math.min(messageInput.scrollHeight, 100) + 'px';
-            }
-        }
-
-        // 戻るボタン
-        function goBack() {
-            // ユーザータイプに応じて適切なページに戻る
-            if (currentUser.type === 'fortune-teller') {
-                window.location.href = 'cupids-fortune-lobby.html';
-            } else {
-                window.location.href = 'cupids-top.html';
             }
         }
     </script>
