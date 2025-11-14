@@ -575,7 +575,7 @@
             <div class="profile-section">
                 <div class="section-title">プロフィール</div>
                 <div class="profile-description">
-                    ${ft.profileMessage ? ft.profileMessage.replace(/\n/g, '<br>') : 'プロフィールメッセージがありません'}
+                    ${ft.profileMessage || 'プロフィールメッセージがありません'}
                 </div>
             </div>
 
