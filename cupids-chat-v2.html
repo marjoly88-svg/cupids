@@ -479,14 +479,20 @@
 
   <div class="tabs" id="chatTabs">
     <button class="tab" id="freeTab" data-tab="free">無料チャット</button>
-    <button class="tab active" data-tab="paid">有料チャット</button>
-    <button class="tab" data-tab="templates">定型文（無料）</button>
+    <button class="tab active" id="paidTab" data-tab="paid">有料チャット</button>
+    <button class="tab" id="templatesTab" data-tab="templates">定型文（無料）</button>
   </div>
 
   <div class="templates-area" id="templatesArea">
-    <div class="template-item" data-text="ご相談ありがとうございます。詳しくお話を伺わせていただけますか？">ご相談ありがとうございます。詳しくお話を伺わせていただけますか？</div>
-    <div class="template-item" data-text="鑑定させていただきました。少々お待ちください。">鑑定させていただきました。少々お待ちください。</div>
-    <div class="template-item" data-text="ありがとうございました。またいつでもご相談ください。">ありがとうございました。またいつでもご相談ください。</div>
+    <div class="template-item" data-text="ご相談ありがとうございます。詳しくお話を伺わせていただけますか？">
+      ご相談ありがとうございます。詳しくお話を伺わせていただけますか？
+    </div>
+    <div class="template-item" data-text="鑑定させていただきました。少々お待ちください。">
+      鑑定させていただきました。少々お待ちください。
+    </div>
+    <div class="template-item" data-text="ありがとうございました。またいつでもご相談ください。">
+      ありがとうございました。またいつでもご相談ください。
+    </div>
     <button class="add-template-button" id="editTemplatesButton">+ 定型文を編集</button>
   </div>
 
@@ -503,7 +509,11 @@
         <textarea class="message-input" id="messageInput" placeholder="メッセージを入力..." rows="1" maxlength="500"></textarea>
         <div class="char-counter" id="charCounter">0 / 500</div>
       </div>
-      <button class="send-button" id="sendButton"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 21l18-9L3 3v7l13 2-13 2z" transform="rotate(-45 12 12)"/></svg></button>
+      <button class="send-button" id="sendButton">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 21l18-9L3 3v7l13 2-13 2z" transform="rotate(-45 12 12)"/>
+        </svg>
+      </button>
     </div>
   </div>
 </div>
@@ -538,10 +548,23 @@
   </div>
 </div>
 
+<!-- Firebase 初期化 -->
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
   import { getAuth } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-  import { getFirestore, doc, getDoc, setDoc, collection, addDoc, query, where, onSnapshot, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+  import {
+    getFirestore,
+    doc,
+    getDoc,
+    setDoc,
+    collection,
+    addDoc,
+    query,
+    where,
+    orderBy,
+    onSnapshot,
+    getDocs
+  } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
   const firebaseConfig = {
     apiKey: "AIzaSyA52uJ31HzLkbz32lA-3WWSmhM10xYjjCg",
@@ -565,118 +588,37 @@
   window.firebaseAddDoc = addDoc;
   window.firebaseQuery = query;
   window.firebaseWhere = where;
+  window.firebaseOrderBy = orderBy;
   window.firebaseOnSnapshot = onSnapshot;
   window.firebaseGetDocs = getDocs;
 
   window.firebaseReady = true;
   window.dispatchEvent(new Event('firebaseReady'));
+  console.log('✅ Firebase初期化完了!');
 </script>
 
 <script>
+  // ===== 共通変数 =====
   const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
   if (!currentUser) {
     alert('ログインが必要です');
     window.location.href = 'cupids-login.html';
   }
 
-  const conversationId = localStorage.getItem('selectedConversationId');
+  const urlParams = new URLSearchParams(window.location.search);
+  let conversationId = localStorage.getItem('selectedConversationId') || urlParams.get('conversationId') || '';
+  let clientId = localStorage.getItem('selectedClientId') || urlParams.get('clientId') || '';
+  let fortuneTellerId = localStorage.getItem('selectedFortuneTellerId') || urlParams.get('fortuneTellerId') || '';
+
   let conversationStatus = 'not-started';
-  let fortuneTellerId = '';
   let fortuneTellerPrice = 10;
+  let currentChatMode = 'paid'; // 'paid' or 'free'
 
-  function displayMessage(messageData) {
-    // ✅ 修正：currentUser.typeとmessageDataの参加者IDで判定
-    const isSent = (currentUser.type === 'client' && messageData.senderId === messageData.clientId) ||
-                   (currentUser.type === 'fortune-teller' && messageData.senderId === messageData.fortuneTellerId);
-    
-    const messageType = messageData.messageType || 'paid';
-    let bubbleClass = 'message-bubble';
-    if (messageType === 'free' || messageType === 'templates') {
-      bubbleClass = 'message-bubble free';
-    } else if (messageType === 'paid') {
-      bubbleClass = 'message-bubble paid';
-    }
-    
-    const chatArea = document.getElementById('chatArea');
-    const messageDiv = document.createElement('div');
-    messageDiv.className = isSent ? 'message sent' : 'message';
-    messageDiv.innerHTML = `
-      <div class="message-content">
-        <div class="${bubbleClass}">${(messageData.text || '').replace(/\n/g, '<br>')}</div>
-        <div class="message-time">${formatTimestamp(messageData.timestamp)}</div>
-      </div>
-    `;
-    chatArea.appendChild(messageDiv);
-    chatArea.scrollTop = chatArea.scrollHeight;
-  }
-
-  function formatTimestamp(timestamp) {
-    if (!timestamp) return '';
-    let date;
-    if (timestamp.toDate) {
-      date = timestamp.toDate();
-    } else if (timestamp instanceof Date) {
-      date = timestamp;
-    } else {
-      date = new Date(timestamp);
-    }
-    return `${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
-  }
-
-  async function loadMessages() {
-    if (!conversationId) return;
-    try {
-      const messagesRef = window.firebaseCollection(window.firebaseDB, 'messages');
-      const q = window.firebaseQuery(messagesRef, window.firebaseWhere('conversationId', '==', conversationId));
-      const existingMessages = new Set();
-      window.firebaseOnSnapshot(q, (snapshot) => {
-        const newMessages = [];
-        snapshot.docChanges().forEach((change) => {
-          if (change.type === 'added') {
-            const data = change.doc.data();
-            const id = change.doc.id;
-            if (!existingMessages.has(id)) {
-              existingMessages.add(id);
-              const ts = data.timestamp?.toMillis ? data.timestamp.toMillis() : new Date(data.timestamp).getTime();
-              newMessages.push({ id, data, timestamp: ts });
-            }
-          }
-        });
-        newMessages.sort((a, b) => a.timestamp - b.timestamp);
-        newMessages.forEach(msg => displayMessage(msg.data));
-      });
-    } catch (err) {
-      console.error('メッセージ読み込みエラー:', err);
-    }
-  }
-
-  async function sendMessage() {
-    const messageInput = document.getElementById('messageInput');
-    const text = messageInput.value.trim();
-    if (!text) return;
-
-    try {
-      const messagesRef = window.firebaseCollection(window.firebaseDB, 'messages');
-      const clientId = currentUser.type === 'client' ? currentUser.uid : localStorage.getItem('selectedClientId') || '';
-      
-      await window.firebaseAddDoc(messagesRef, {
-        conversationId,
-        senderId: currentUser.uid,
-        clientId,
-        fortuneTellerId,
-        senderName: currentUser.name || currentUser.email,
-        text,
-        messageType: 'paid',
-        timestamp: new Date(),
-        isRead: false
-      });
-
-      messageInput.value = '';
-      document.getElementById('charCounter').textContent = '0 / 500';
-    } catch (err) {
-      console.error('メッセージ送信エラー:', err);
-      alert('メッセージを送信できませんでした');
-    }
+  function waitFirebaseReady() {
+    if (window.firebaseReady) return Promise.resolve();
+    return new Promise(resolve => {
+      window.addEventListener('firebaseReady', () => resolve(), { once: true });
+    });
   }
 
   function goBack() {
@@ -691,24 +633,334 @@
     alert('レビュー送信機能は別途実装予定です');
   }
 
-  // 初期化
-  if (window.firebaseReady) {
-    loadMessages();
-  } else {
-    window.addEventListener('firebaseReady', () => {
-      loadMessages();
+  // ===== 会話メタ情報取得（clientId / fortuneTellerId） =====
+  async function loadConversationMeta() {
+    if (!conversationId) return;
+    try {
+      const convRef = window.firebaseDoc(window.firebaseDB, 'conversations', conversationId);
+      const snap = await window.firebaseGetDoc(convRef);
+      if (snap.exists()) {
+        const data = snap.data();
+        conversationStatus = data.status || conversationStatus;
+        if (!clientId && data.clientId) clientId = data.clientId;
+        if (!fortuneTellerId && data.fortuneTellerId) fortuneTellerId = data.fortuneTellerId;
+
+        if (clientId) localStorage.setItem('selectedClientId', clientId);
+        if (fortuneTellerId) localStorage.setItem('selectedFortuneTellerId', fortuneTellerId);
+      }
+    } catch (e) {
+      console.error('会話情報取得エラー:', e);
+    }
+  }
+
+  // ===== ヘッダー表示 =====
+  async function loadHeaderInfo() {
+    const nameEl = document.getElementById('ftName');
+    const avatarEl = document.getElementById('ftAvatar');
+    const pointsEl = document.getElementById('userPoints');
+
+    try {
+      if (currentUser.type === 'client') {
+        // お客様ビュー：占い師情報を表示
+        if (!fortuneTellerId) {
+          nameEl.textContent = '占い師情報なし';
+          return;
+        }
+        const ftDoc = await window.firebaseGetDoc(
+          window.firebaseDoc(window.firebaseDB, 'fortuneTellers', fortuneTellerId)
+        );
+        let name = '占い師';
+        let imageUrl = '';
+        if (ftDoc.exists()) {
+          const data = ftDoc.data();
+          name = data.name || data.displayName || '占い師';
+          imageUrl = data.photoURL || data.imageUrl || '';
+          fortuneTellerPrice = data.pricePerChar || data.price || data.pricePerCharacter || 10;
+        }
+        nameEl.textContent = name;
+        if (imageUrl) {
+          avatarEl.innerHTML =
+            '<img src="' + imageUrl + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">';
+        } else {
+          avatarEl.textContent = name[0] || '占';
+        }
+        pointsEl.textContent = '所持ポイント ' + (currentUser.points || 0) + 'pt';
+      } else {
+        // 占い師ビュー：お客様情報を表示
+        let clientName = 'お客様';
+        let clientPoints = 0;
+        if (clientId) {
+          const clientDoc = await window.firebaseGetDoc(
+            window.firebaseDoc(window.firebaseDB, 'users', clientId)
+          );
+          if (clientDoc.exists()) {
+            const data = clientDoc.data();
+            clientName = data.name || 'お客様';
+            clientPoints = data.points || 0;
+          }
+        }
+        nameEl.textContent = clientName;
+        avatarEl.textContent = clientName[0] || '客';
+        pointsEl.textContent = '所持ポイント ' + clientPoints + 'pt';
+      }
+    } catch (e) {
+      console.error('ヘッダー情報取得エラー:', e);
+      nameEl.textContent = '情報取得エラー';
+    }
+  }
+
+  function updateHeaderButtons() {
+    const container = document.getElementById('headerButtons');
+    container.innerHTML = '';
+
+    const exitBtn = document.createElement('button');
+    exitBtn.className = 'exit-button';
+    exitBtn.textContent = '退室';
+    exitBtn.onclick = () => goBack();
+    container.appendChild(exitBtn);
+
+    if (currentUser.type === 'fortune-teller') {
+      const karteBtn = document.createElement('button');
+      karteBtn.className = 'karte-button';
+      karteBtn.textContent = 'カルテ';
+      karteBtn.onclick = () => {
+        if (!clientId) {
+          alert('お客様情報がありません');
+          return;
+        }
+        window.location.href = 'cupids-karute.html?clientId=' + encodeURIComponent(clientId);
+      };
+      container.appendChild(karteBtn);
+    }
+  }
+
+  // ===== 役割ごとの UI 切り替え =====
+  function setupRoleBasedUI() {
+    const freeTab = document.getElementById('freeTab');
+    const templatesArea = document.getElementById('templatesArea');
+    const clientTemplatesArea = document.getElementById('clientTemplatesArea');
+
+    if (currentUser.type === 'client') {
+      // お客様：無料タブは非表示、占い師用テンプレは非表示
+      freeTab.style.display = 'none';
+      templatesArea.classList.remove('active');
+      templatesArea.style.display = 'none';
+      clientTemplatesArea.style.display = 'none';
+    } else {
+      // 占い師：お客様テンプレは基本非表示
+      templatesArea.style.display = 'none';
+      clientTemplatesArea.style.display = 'none';
+    }
+  }
+
+  // ===== タブ切り替え =====
+  function setupTabs() {
+    const tabs = document.querySelectorAll('.tab');
+    const templatesArea = document.getElementById('templatesArea');
+    const clientTemplatesArea = document.getElementById('clientTemplatesArea');
+
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        const tabName = tab.dataset.tab;
+
+        // お客様は無料タブ禁止
+        if (currentUser.type === 'client' && tabName === 'free') {
+          document.getElementById('paidTab').click();
+          return;
+        }
+
+        tabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+
+        if (tabName === 'paid' || tabName === 'free') {
+          currentChatMode = tabName === 'free' && currentUser.type === 'fortune-teller' ? 'free' : 'paid';
+          templatesArea.classList.remove('active');
+          clientTemplatesArea.classList.remove('active');
+        } else if (tabName === 'templates') {
+          currentChatMode = 'paid'; // テンプレから送っても課金扱い
+          if (currentUser.type === 'fortune-teller') {
+            templatesArea.classList.add('active');
+            clientTemplatesArea.classList.remove('active');
+          } else {
+            templatesArea.classList.remove('active');
+            clientTemplatesArea.classList.add('active');
+          }
+        }
+      });
+    });
+
+    // 初期状態は有料タブ
+    document.getElementById('paidTab').classList.add('active');
+  }
+
+  // ===== テンプレクリックで入力欄に挿入 =====
+  function setupTemplateClicks() {
+    const allTemplates = document.querySelectorAll('#templatesArea .template-item, #clientTemplatesArea .template-item');
+    const input = document.getElementById('messageInput');
+    const counter = document.getElementById('charCounter');
+
+    allTemplates.forEach(item => {
+      item.addEventListener('click', () => {
+        const text = item.dataset.text || item.textContent.trim();
+        if (input.value) {
+          input.value += '\n' + text;
+        } else {
+          input.value = text;
+        }
+        counter.textContent = input.value.length + ' / 500';
+      });
     });
   }
 
-  // イベントリスナー
-  document.getElementById('sendButton').addEventListener('click', sendMessage);
-  document.getElementById('messageInput').addEventListener('input', (e) => {
-    document.getElementById('charCounter').textContent = `${e.target.value.length} / 500`;
-  });
+  // ===== メッセージ表示 =====
+  function formatTimestamp(timestamp) {
+    if (!timestamp) return '';
+    let date;
+    if (timestamp.toDate) {
+      date = timestamp.toDate();
+    } else if (timestamp instanceof Date) {
+      date = timestamp;
+    } else {
+      date = new Date(timestamp);
+    }
+    return `${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
+  }
 
-  // URLから占い師ID取得
-  const urlParams = new URLSearchParams(window.location.search);
-  fortuneTellerId = urlParams.get('fortuneTellerId') || localStorage.getItem('selectedFortuneTellerId') || '';
+  function displayMessage(messageData) {
+    const chatArea = document.getElementById('chatArea');
+
+    const messageType = messageData.messageType || 'paid';
+
+    let isSent;
+    if (messageData.senderType) {
+      // 新仕様：senderType を優先
+      isSent = messageData.senderType === currentUser.type;
+    } else {
+      // 旧データ用フォールバック
+      isSent =
+        (currentUser.type === 'client' && messageData.senderId === clientId) ||
+        (currentUser.type === 'fortune-teller' && messageData.senderId === fortuneTellerId) ||
+        messageData.senderId === (currentUser.uid || '');
+    }
+
+    let bubbleClass = 'message-bubble';
+    if (messageType === 'free' || messageType === 'templates') {
+      bubbleClass = 'message-bubble free';
+    } else if (messageType === 'paid') {
+      bubbleClass = 'message-bubble paid';
+    }
+
+    const messageDiv = document.createElement('div');
+    messageDiv.className = isSent ? 'message sent' : 'message';
+    messageDiv.innerHTML = `
+      <div class="message-content">
+        <div class="${bubbleClass}">${(messageData.text || '').replace(/\n/g, '<br>')}</div>
+        <div class="message-time">${formatTimestamp(messageData.timestamp)}</div>
+      </div>
+    `;
+    chatArea.appendChild(messageDiv);
+    chatArea.scrollTop = chatArea.scrollHeight;
+  }
+
+  // ===== メッセージ読み込み =====
+  async function loadMessages() {
+    if (!conversationId) return;
+    try {
+      const messagesRef = window.firebaseCollection(window.firebaseDB, 'messages');
+      const q = window.firebaseQuery(
+        messagesRef,
+        window.firebaseWhere('conversationId', '==', conversationId),
+        window.firebaseOrderBy('timestamp', 'asc')
+      );
+      const existingMessages = new Set();
+      window.firebaseOnSnapshot(q, snapshot => {
+        snapshot.docChanges().forEach(change => {
+          if (change.type === 'added') {
+            const id = change.doc.id;
+            if (existingMessages.has(id)) return;
+            existingMessages.add(id);
+            const data = change.doc.data();
+            displayMessage(data);
+          }
+        });
+      });
+    } catch (err) {
+      console.error('メッセージ読み込みエラー:', err);
+    }
+  }
+
+  // ===== メッセージ送信 =====
+  async function sendMessage() {
+    const messageInput = document.getElementById('messageInput');
+    const text = messageInput.value.trim();
+    if (!text || !conversationId) return;
+
+    try {
+      const messagesRef = window.firebaseCollection(window.firebaseDB, 'messages');
+
+      // 役割に応じて clientId / fortuneTellerId を補完
+      const finalClientId = clientId || (currentUser.type === 'client' ? currentUser.uid : '');
+      const finalFtId = fortuneTellerId || (currentUser.type === 'fortune-teller' ? currentUser.uid : '');
+
+      const messageType =
+        currentChatMode === 'free' && currentUser.type === 'fortune-teller'
+          ? 'free'
+          : 'paid';
+
+      await window.firebaseAddDoc(messagesRef, {
+        conversationId,
+        senderId: currentUser.uid,
+        senderType: currentUser.type, // ★どっち側から送ったか
+        clientId: finalClientId,
+        fortuneTellerId: finalFtId,
+        senderName: currentUser.name || currentUser.email,
+        text,
+        messageType,
+        timestamp: new Date(),
+        isRead: false
+      });
+
+      messageInput.value = '';
+      document.getElementById('charCounter').textContent = '0 / 500';
+    } catch (err) {
+      console.error('メッセージ送信エラー:', err);
+      alert('メッセージを送信できませんでした');
+    }
+  }
+
+  // ===== 入力欄イベント =====
+  function setupInputEvents() {
+    const input = document.getElementById('messageInput');
+    const counter = document.getElementById('charCounter');
+    const sendButton = document.getElementById('sendButton');
+
+    sendButton.addEventListener('click', sendMessage);
+
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+
+    input.addEventListener('input', e => {
+      counter.textContent = `${e.target.value.length} / 500`;
+    });
+  }
+
+  // ===== 初期化 =====
+  async function initChat() {
+    await waitFirebaseReady();
+    await loadConversationMeta();
+    setupRoleBasedUI();
+    setupTabs();
+    setupTemplateClicks();
+    updateHeaderButtons();
+    await loadHeaderInfo();
+    await loadMessages();
+  }
+
+  initChat();
 </script>
 </body>
 </html>
