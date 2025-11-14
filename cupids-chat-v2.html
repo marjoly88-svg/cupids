@@ -280,7 +280,7 @@
       transition: all 0.2s;
     }
 
-    .send-button:hover {
+    .send-button:hover:not(:disabled) {
       transform: scale(1.05);
       box-shadow: 0 4px 12px rgba(233, 103, 165, 0.4);
     }
@@ -295,6 +295,8 @@
     .send-button:disabled {
       opacity: 0.5;
       cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
     }
 
     .templates-area {
@@ -633,7 +635,7 @@
     alert('レビュー送信機能は別途実装予定です');
   }
 
-  // ===== 会話メタ情報取得（clientId / fortuneTellerId） =====
+  // ===== 会話メタ情報取得 =====
   async function loadConversationMeta() {
     if (!conversationId) return;
     try {
@@ -684,7 +686,8 @@
         } else {
           avatarEl.textContent = name[0] || '占';
         }
-        pointsEl.textContent = '所持ポイント ' + (currentUser.points || 0) + 'pt';
+        const pts = Number(currentUser.points || 0);
+        pointsEl.textContent = '所持ポイント ' + pts + 'pt';
       } else {
         // 占い師ビュー：お客様情報を表示
         let clientName = 'お客様';
@@ -741,16 +744,13 @@
     const clientTemplatesArea = document.getElementById('clientTemplatesArea');
 
     if (currentUser.type === 'client') {
-      // お客様：無料タブは非表示、占い師用テンプレは非表示
+      // お客様：無料タブは非表示
       freeTab.style.display = 'none';
-      templatesArea.classList.remove('active');
-      templatesArea.style.display = 'none';
-      clientTemplatesArea.style.display = 'none';
-    } else {
-      // 占い師：お客様テンプレは基本非表示
-      templatesArea.style.display = 'none';
-      clientTemplatesArea.style.display = 'none';
     }
+
+    // 最初はどちらのテンプレも非アクティブ（表示はタブで制御）
+    templatesArea.classList.remove('active');
+    clientTemplatesArea.classList.remove('active');
   }
 
   // ===== タブ切り替え =====
@@ -758,6 +758,7 @@
     const tabs = document.querySelectorAll('.tab');
     const templatesArea = document.getElementById('templatesArea');
     const clientTemplatesArea = document.getElementById('clientTemplatesArea');
+    const messageInput = document.getElementById('messageInput');
 
     tabs.forEach(tab => {
       tab.addEventListener('click', () => {
@@ -773,19 +774,31 @@
         tab.classList.add('active');
 
         if (tabName === 'paid' || tabName === 'free') {
-          currentChatMode = tabName === 'free' && currentUser.type === 'fortune-teller' ? 'free' : 'paid';
+          // テンプレ非表示
           templatesArea.classList.remove('active');
           clientTemplatesArea.classList.remove('active');
+
+          // チャットモード
+          if (tabName === 'free' && currentUser.type === 'fortune-teller') {
+            currentChatMode = 'free';
+          } else {
+            currentChatMode = 'paid';
+          }
         } else if (tabName === 'templates') {
-          currentChatMode = 'paid'; // テンプレから送っても課金扱い
           if (currentUser.type === 'fortune-teller') {
+            // 占い師のテンプレは有料扱い
+            currentChatMode = 'paid';
             templatesArea.classList.add('active');
             clientTemplatesArea.classList.remove('active');
           } else {
+            // お客様テンプレは完全無料
+            currentChatMode = 'free';
             templatesArea.classList.remove('active');
             clientTemplatesArea.classList.add('active');
           }
         }
+
+        checkPointsAvailability();
       });
     });
 
@@ -810,6 +823,28 @@
         counter.textContent = input.value.length + ' / 500';
       });
     });
+  }
+
+  // ===== 所持ポイントに応じて送信可否を制御（お客様のみ） =====
+  function checkPointsAvailability() {
+    const sendButton = document.getElementById('sendButton');
+    if (!sendButton) return;
+
+    if (currentUser.type !== 'client') {
+      sendButton.disabled = false;
+      return;
+    }
+
+    const activeTab = document.querySelector('.tab.active');
+    const tabName = activeTab ? activeTab.dataset.tab : 'paid';
+    const points = Number(currentUser.points || 0);
+
+    // 有料タブでポイント0なら送信不可
+    if (tabName === 'paid' && points <= 0) {
+      sendButton.disabled = true;
+    } else {
+      sendButton.disabled = false;
+    }
   }
 
   // ===== メッセージ表示 =====
@@ -902,20 +937,71 @@
       const finalClientId = clientId || (currentUser.type === 'client' ? currentUser.uid : '');
       const finalFtId = fortuneTellerId || (currentUser.type === 'fortune-teller' ? currentUser.uid : '');
 
-      const messageType =
-        currentChatMode === 'free' && currentUser.type === 'fortune-teller'
-          ? 'free'
-          : 'paid';
+      // ===== メッセージ種別判定 =====
+      // currentChatMode:
+      // - 占い師 freeタブ → 'free'
+      // - お客様テンプレタブ → 'free'（messageType='templates'）
+      // - それ以外 → 'paid'
+      let messageType;
+      if (currentChatMode === 'free') {
+        if (currentUser.type === 'client') {
+          // お客様のテンプレ無料
+          messageType = 'templates';
+        } else {
+          // 占い師無料
+          messageType = 'free';
+        }
+      } else {
+        messageType = 'paid';
+      }
 
+      // ===== ポイント計算（お客様が有料メッセージを送るときだけ） =====
+      if (currentUser.type === 'client' && messageType === 'paid') {
+        const messageLength = text.length;
+        const pricePerChar = Number(fortuneTellerPrice) || 10;
+        const requiredPoints = messageLength * pricePerChar;
+        const currentPoints = Number(currentUser.points || 0);
+
+        if (currentPoints < requiredPoints) {
+          alert(`ポイントが不足しています。\n必要ポイント: ${requiredPoints}pt\n所持ポイント: ${currentPoints}pt`);
+          return;
+        }
+
+        const newPoints = currentPoints - requiredPoints;
+
+        // Firestore上のユーザー情報を更新
+        if (finalClientId) {
+          const clientRef = window.firebaseDoc(window.firebaseDB, 'users', finalClientId);
+          await window.firebaseSetDoc(
+            clientRef,
+            { points: newPoints },
+            { merge: true }
+          );
+        }
+
+        // ローカルの currentUser も更新
+        currentUser.points = newPoints;
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+
+        // ヘッダー表示も更新
+        const pointsEl = document.getElementById('userPoints');
+        if (pointsEl) {
+          pointsEl.textContent = '所持ポイント ' + newPoints + 'pt';
+        }
+
+        checkPointsAvailability();
+      }
+
+      // ===== メッセージ保存 =====
       await window.firebaseAddDoc(messagesRef, {
         conversationId,
         senderId: currentUser.uid,
-        senderType: currentUser.type, // ★どっち側から送ったか
+        senderType: currentUser.type,
         clientId: finalClientId,
         fortuneTellerId: finalFtId,
         senderName: currentUser.name || currentUser.email,
         text,
-        messageType,
+        messageType,          // 'paid' | 'free' | 'templates'
         timestamp: new Date(),
         isRead: false
       });
@@ -958,6 +1044,7 @@
     setupInputEvents();
     updateHeaderButtons();
     await loadHeaderInfo();
+    checkPointsAvailability();
     await loadMessages();
   }
 
