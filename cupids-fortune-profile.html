@@ -130,7 +130,7 @@
             font-weight: bold;
             margin-bottom: 10px;
         }
-
+        
         .point-purchase-link {
             display: inline-block;
             padding: 8px 16px;
@@ -143,7 +143,7 @@
             margin-top: 8px;
             transition: all 0.2s;
         }
-
+        
         .point-purchase-link:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
@@ -396,7 +396,7 @@
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { getAuth } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-        import { getFirestore, doc, getDoc, collection, query, where, getDocs, addDoc, updateDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { getFirestore, doc, getDoc, collection, query, where, getDocs, addDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
         const firebaseConfig = {
             apiKey: "AIzaSyA52uJ31HzLkbz32lA-3WWSmhM10xYjjCg",
@@ -420,7 +420,6 @@
         window.firebaseWhere = where;
         window.firebaseGetDocs = getDocs;
         window.firebaseAddDoc = addDoc;
-        window.firebaseUpdateDoc = updateDoc;
 
         window.firebaseReady = true;
         window.dispatchEvent(new Event('firebaseReady'));
@@ -454,7 +453,7 @@
 
                 const ftData = ftDoc.data() || {};
 
-                // reviewsコレクションから実レビュー件数 & コメント付きレビュー件数を取得
+                // reviewsコレクションからレビュー件数を取得
                 const reviewsRef = window.firebaseCollection(window.firebaseDB, 'reviews');
                 const reviewsQuery = window.firebaseQuery(
                     reviewsRef,
@@ -466,10 +465,10 @@
                 let commentReviewCount = 0;
 
                 reviewsSnapshot.forEach(docSnap => {
-                    const rev = docSnap.data();
-                    actualReviewCount++;
-                    if (rev.comment && rev.comment.trim() !== '') {
-                        commentReviewCount++;
+                    actualReviewCount += 1;
+                    const r = docSnap.data() || {};
+                    if (r.comment && typeof r.comment === 'string' && r.comment.trim() !== '') {
+                        commentReviewCount += 1;
                     }
                 });
 
@@ -515,13 +514,11 @@
                 ? ft.specialty.split(',').map(tag => tag.trim()).filter(Boolean)
                 : [];
 
-            // 実レビュー数
+            // 実レビュー数（★だけも含む）
             const actualReviewCount =
                 typeof ft.actualReviewCount === 'number' && !isNaN(ft.actualReviewCount)
                     ? ft.actualReviewCount
-                    : typeof ft.reviewCount === 'number' && !isNaN(ft.reviewCount)
-                        ? ft.reviewCount
-                        : 0;
+                    : 0;
 
             // 管理画面の基準レビュー（＋10とか）
             const baseCountRaw =
@@ -532,14 +529,14 @@
                         : 0;
             const baseReviewCount = Math.max(0, baseCountRaw);
 
-            // 表示用の鑑定数 = 実レビュー + 基準値
-            const totalReviewCount = actualReviewCount + baseReviewCount;
-
-            // コメント付きレビュー件数（ボタン表示用）
+            // コメント付きレビュー数
             const commentReviewCount =
                 typeof ft.commentReviewCount === 'number' && !isNaN(ft.commentReviewCount)
                     ? ft.commentReviewCount
                     : 0;
+
+            // 表示用の鑑定数 = コメント付きレビュー + 基準値
+            const totalReviewCount = commentReviewCount + baseReviewCount;
 
             // 平均評価
             const averageRating =
@@ -572,14 +569,7 @@
                     </div>
                     <div class="profile-status ${statusClass}">${statusText}</div>
                     <div class="profile-price">1文字 ${pricePerChar}pt</div>
-                    <a href="https://minamisan.square.site/" target="_blank" class="point-purchase-link">
-                        💳 ポイント購入
-                    </a>
-                    <div style="margin-top: 16px;">
-                        <button class="review-button" onclick="openReviewModal()">
-                            レビューを見る（${commentReviewCount}件）
-                        </button>
-                    </div>
+                    <a href="https://minamisan.square.site/" target="_blank" class="point-purchase-link">💳 ポイント購入</a>
                 </div>
 
                 ${tags.length > 0 ? `
@@ -593,9 +583,13 @@
 
                 <div class="profile-section">
                     <div class="section-title">プロフィール</div>
-                    <div class="profile-description">
-                        ${ft.profileMessage || 'プロフィールメッセージがありません'}
-                    </div>
+                    <div class="profile-description">${ft.profileMessage || 'プロフィールメッセージがありません'}</div>
+                </div>
+
+                <div class="profile-section">
+                    <button class="review-button" onclick="openReviewModal()">
+                        レビューを見る（${totalReviewCount}件）
+                    </button>
                 </div>
             `;
 
@@ -635,36 +629,45 @@
 
                 const reviews = [];
                 reviewsSnapshot.forEach(docSnap => {
-                    const review = docSnap.data();
-                    // コメントなしは表示しない
-                    if (review.comment && review.comment.trim() !== '') {
-                        reviews.push(review);
-                    }
+                    reviews.push(docSnap.data() || {});
                 });
-
-                // コメント付きがない場合
-                if (reviews.length === 0) {
-                    reviewsList.innerHTML = '<div class="no-reviews">まだコメント付きレビューがありません</div>';
-                    return;
-                }
 
                 // 新しい日付順
                 reviews.sort((a, b) => {
-                    const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-                    const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+                    const aTime = a.createdAt && a.createdAt.toDate
+                        ? a.createdAt.toDate().getTime()
+                        : a.createdAt
+                            ? new Date(a.createdAt).getTime()
+                            : 0;
+                    const bTime = b.createdAt && b.createdAt.toDate
+                        ? b.createdAt.toDate().getTime()
+                        : b.createdAt
+                            ? new Date(b.createdAt).getTime()
+                            : 0;
                     return bTime - aTime;
                 });
 
                 reviewsList.innerHTML = '';
 
                 reviews.forEach(review => {
+                    if (!review.comment || review.comment.trim() === '') {
+                        return;
+                    }
+
                     const reviewDiv = document.createElement('div');
                     reviewDiv.className = 'review-item';
 
-                    const stars = '⭐'.repeat(review.rating || 5);
-                    const date = review.createdAt
-                        ? new Date(review.createdAt).toLocaleDateString('ja-JP')
-                        : '';
+                    const rating = typeof review.rating === 'number' && !isNaN(review.rating)
+                        ? review.rating
+                        : 5;
+                    const stars = '⭐'.repeat(Math.max(1, Math.min(5, rating)));
+
+                    const date = review.createdAt && review.createdAt.toDate
+                        ? review.createdAt.toDate().toLocaleDateString('ja-JP')
+                        : review.createdAt
+                            ? new Date(review.createdAt).toLocaleDateString('ja-JP')
+                            : '';
+
                     const comment = review.comment || '';
 
                     reviewDiv.innerHTML = `
@@ -677,6 +680,10 @@
 
                     reviewsList.appendChild(reviewDiv);
                 });
+
+                if (reviewsList.children.length === 0) {
+                    reviewsList.innerHTML = '<div class="no-reviews">まだコメント付きレビューがありません</div>';
+                }
             } catch (error) {
                 console.error('レビュー読み込みエラー:', error);
                 reviewsList.innerHTML = '<div class="no-reviews">レビューの読み込みに失敗しました</div>';
