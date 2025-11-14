@@ -54,7 +54,7 @@
         .container {
             max-width: 800px;
             margin: 0 auto;
-            padding: 0 0 120px; /* 下に余白を足してチャットボタンと被らないように */
+            padding: 0 0 120px; /* ↓チャットボタンに隠れない用の余白 */
         }
 
         /* プロフィールヘッダー */
@@ -195,7 +195,7 @@
             white-space: pre-wrap;
         }
 
-        /* レビュー */
+        /* レビュー項目 */
         .review-item {
             padding: 16px;
             border-bottom: 1px solid #f0f0f0;
@@ -360,7 +360,7 @@
 
         .modal-body {
             padding: 20px;
-            overflow-y: auto; /* ここがスクロール領域（10件以上はスクロールで読む感じ） */
+            overflow-y: auto; /* ここがスクロール領域 */
             flex: 1;
         }
     </style>
@@ -432,3 +432,334 @@
         window.dispatchEvent(new Event('firebaseReady'));
         console.log('✅ Firebase初期化完了!');
     </script>
+
+    <!-- アプリ本体 -->
+    <script>
+        // URLパラメータから占い師IDを取得
+        const urlParams = new URLSearchParams(window.location.search);
+        const fortuneTellerId = urlParams.get('id');
+
+        if (!fortuneTellerId) {
+            alert('占い師が指定されていません');
+            window.location.href = 'cupids-client-login.html';
+        }
+
+        let fortuneTellerData = null;
+
+        // 占い師のプロフィールを読み込み
+        async function loadProfile() {
+            try {
+                const ftRef = window.firebaseDoc(window.firebaseDB, 'fortuneTellers', fortuneTellerId);
+                const ftDoc = await window.firebaseGetDoc(ftRef);
+
+                if (!ftDoc.exists()) {
+                    document.getElementById('profileContent').innerHTML =
+                        '<div class="loading">占い師が見つかりません</div>';
+                    return;
+                }
+
+                const ftData = ftDoc.data() || {};
+
+                // reviewsコレクションから実レビュー件数を取得
+                const reviewsRef = window.firebaseCollection(window.firebaseDB, 'reviews');
+                const reviewsQuery = window.firebaseQuery(
+                    reviewsRef,
+                    window.firebaseWhere('fortuneTellerId', '==', fortuneTellerId)
+                );
+                const reviewsSnapshot = await window.firebaseGetDocs(reviewsQuery);
+
+                const actualReviewCount = reviewsSnapshot.size || 0;
+
+                // プロフィール情報をグローバルに保持
+                fortuneTellerData = {
+                    id: ftDoc.id,
+                    ...ftData,
+                    actualReviewCount
+                };
+
+                // プロフィールを表示
+                displayProfile(fortuneTellerData);
+            } catch (error) {
+                console.error('プロフィール読み込みエラー:', error);
+                document.getElementById('profileContent').innerHTML =
+                    '<div class="loading">読み込みに失敗しました</div>';
+            }
+        }
+
+        // プロフィールを表示
+        function displayProfile(ft) {
+            const statusText =
+                ft.status === 'available'
+                    ? 'すぐ占えます'
+                    : ft.status === 'accepting'
+                        ? '鑑定受付中（24時間以内に返信）'
+                        : '鑑定停止中';
+
+            const statusClass =
+                ft.status === 'available'
+                    ? 'available'
+                    : ft.status === 'accepting'
+                        ? 'accepting'
+                        : 'stopped';
+
+            const imageUrl = ft.photoURL || ft.profileImageUrl || ft.imageUrl;
+            const avatarContent = imageUrl
+                ? `<img src="${imageUrl}" class="profile-avatar" />`
+                : `<div class="profile-avatar">${(ft.name || '？').charAt(0)}</div>`;
+
+            const tags = ft.specialty
+                ? ft.specialty.split(',').map(tag => tag.trim()).filter(Boolean)
+                : [];
+
+            // 実レビュー数
+            const actualReviewCount =
+                typeof ft.actualReviewCount === 'number' && !isNaN(ft.actualReviewCount)
+                    ? ft.actualReviewCount
+                    : typeof ft.reviewCount === 'number' && !isNaN(ft.reviewCount)
+                        ? ft.reviewCount
+                        : 0;
+
+            // 管理画面の基準レビュー
+            const baseCountRaw =
+                typeof ft.baseReviewCount === 'number' && !isNaN(ft.baseReviewCount)
+                    ? ft.baseReviewCount
+                    : typeof ft.dummyReviewCount === 'number' && !isNaN(ft.dummyReviewCount)
+                        ? ft.dummyReviewCount
+                        : 0;
+            const baseReviewCount = Math.max(0, baseCountRaw);
+
+            // 表示用の鑑定数
+            const totalReviewCount = actualReviewCount + baseReviewCount;
+
+            // 平均評価
+            const averageRating =
+                typeof ft.averageRating === 'number' && !isNaN(ft.averageRating)
+                    ? Number(ft.averageRating).toFixed(1)
+                    : '5.0';
+
+            // 1文字単価
+            const pricePerChar =
+                typeof ft.pricePerChar === 'number' && !isNaN(ft.pricePerChar)
+                    ? ft.pricePerChar
+                    : typeof ft.price === 'number' && !isNaN(ft.price)
+                        ? ft.price
+                        : 10;
+
+            if (fortuneTellerData) {
+                fortuneTellerData.pricePerChar = pricePerChar;
+            }
+
+            const html = `
+                <div class="profile-header">
+                    ${avatarContent}
+                    <div class="profile-name">${ft.name || '占い師'}</div>
+                    <div class="profile-rating">
+                        <span class="star">⭐</span>
+                        <span>${averageRating}</span>
+                        <span>|</span>
+                        <span>鑑定数 ${totalReviewCount}件</span>
+                    </div>
+                    <div class="profile-status ${statusClass}">${statusText}</div>
+                    <div class="profile-price">1文字 ${pricePerChar}pt</div>
+                    <div class="profile-actions">
+                        <a href="https://minamisan.square.site/" target="_blank" class="point-purchase-link">
+                            💳 ポイント購入
+                        </a>
+                        <button class="review-button" onclick="openReviewModal()">
+                            レビューを見る（${totalReviewCount}件）
+                        </button>
+                    </div>
+                </div>
+
+                ${tags.length > 0 ? `
+                <div class="profile-section">
+                    <div class="section-title">得意分野</div>
+                    <div class="profile-tags">
+                        ${tags.map(tag => `<span class="profile-tag">${tag}</span>`).join('')}
+                    </div>
+                </div>
+                ` : ''}
+
+                <div class="profile-section">
+                    <div class="section-title">プロフィール</div>
+                    <div class="profile-description">
+                        ${ft.profileMessage || 'プロフィールメッセージがありません'}
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('profileContent').innerHTML = html;
+
+            // チャットボタンの状態
+            const chatButton = document.getElementById('chatButton');
+            if (ft.status === 'stopped') {
+                chatButton.disabled = true;
+                chatButton.textContent = '現在鑑定を受け付けていません';
+            } else {
+                chatButton.disabled = false;
+                chatButton.textContent = '💬 チャットを始める';
+            }
+        }
+
+        // レビューモーダルを開く
+        async function openReviewModal() {
+            const modal = document.getElementById('reviewModal');
+            const reviewsList = document.getElementById('modalReviewsList');
+
+            modal.classList.add('active');
+            reviewsList.innerHTML = '<div class="loading">読み込み中...</div>';
+
+            try {
+                const reviewsRef = window.firebaseCollection(window.firebaseDB, 'reviews');
+                const reviewsQuery = window.firebaseQuery(
+                    reviewsRef,
+                    window.firebaseWhere('fortuneTellerId', '==', fortuneTellerId)
+                );
+                const reviewsSnapshot = await window.firebaseGetDocs(reviewsQuery);
+
+                if (reviewsSnapshot.empty) {
+                    reviewsList.innerHTML = '<div class="no-reviews">まだレビューがありません</div>';
+                    return;
+                }
+
+                const reviews = [];
+                reviewsSnapshot.forEach(doc => {
+                    reviews.push(doc.data());
+                });
+
+                // 新しい日付順
+                reviews.sort((a, b) => {
+                    const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+                    const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+                    return bTime - aTime;
+                });
+
+                reviewsList.innerHTML = '';
+
+                reviews.forEach(review => {
+                    if (!review.comment || review.comment.trim() === '') {
+                        return;
+                    }
+
+                    const reviewDiv = document.createElement('div');
+                    reviewDiv.className = 'review-item';
+
+                    const stars = '⭐'.repeat(review.rating || 5);
+                    const date = review.createdAt
+                        ? new Date(review.createdAt).toLocaleDateString('ja-JP')
+                        : '';
+                    const comment = review.comment || '';
+
+                    reviewDiv.innerHTML = `
+                        <div class="review-header">
+                            <div class="review-date">${date}</div>
+                            <div class="review-stars">${stars}</div>
+                        </div>
+                        <div class="review-comment">${comment}</div>
+                    `;
+
+                    reviewsList.appendChild(reviewDiv);
+                });
+
+                if (reviewsList.children.length === 0) {
+                    reviewsList.innerHTML = '<div class="no-reviews">まだコメント付きレビューがありません</div>';
+                }
+            } catch (error) {
+                console.error('レビュー読み込みエラー:', error);
+                reviewsList.innerHTML = '<div class="no-reviews">レビューの読み込みに失敗しました</div>';
+            }
+        }
+
+        // レビューモーダルを閉じる
+        function closeReviewModal() {
+            const modal = document.getElementById('reviewModal');
+            modal.classList.remove('active');
+        }
+
+        // モーダル外クリックで閉じる
+        window.addEventListener('click', function (event) {
+            const modal = document.getElementById('reviewModal');
+            if (event.target === modal) {
+                closeReviewModal();
+            }
+        });
+
+        // チャットを開始
+        async function startChat() {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+
+            if (!currentUser || currentUser.type !== 'client') {
+                localStorage.setItem('returnToFortuneTeller', fortuneTellerId);
+                window.location.href = 'cupids-client-login.html';
+                return;
+            }
+
+            if (!window.firebaseDB) {
+                alert('システムを準備中です。少しお待ちください。');
+                return;
+            }
+
+            try {
+                const conversationsRef = window.firebaseCollection(window.firebaseDB, 'conversations');
+                const q = window.firebaseQuery(
+                    conversationsRef,
+                    window.firebaseWhere('clientId', '==', currentUser.uid),
+                    window.firebaseWhere('fortuneTellerId', '==', fortuneTellerId)
+                );
+
+                const querySnapshot = await window.firebaseGetDocs(q);
+                let conversationId;
+
+                if (!querySnapshot.empty) {
+                    conversationId = querySnapshot.docs[0].id;
+                } else {
+                    const nowIso = new Date().toISOString();
+                    const newConvRef = await window.firebaseAddDoc(conversationsRef, {
+                        clientId: currentUser.uid,
+                        fortuneTellerId: fortuneTellerId,
+                        status: 'not-started',
+                        createdAt: nowIso,
+                        lastMessage: '',
+                        lastMessageAt: nowIso
+                    });
+                    conversationId = newConvRef.id;
+                }
+
+                const ft = fortuneTellerData || {};
+                const displayName = ft.name || ft.displayName || '占い師';
+                const pricePerChar =
+                    typeof ft.pricePerChar === 'number' && !isNaN(ft.pricePerChar)
+                        ? ft.pricePerChar
+                        : typeof ft.price === 'number' && !isNaN(ft.price)
+                            ? ft.price
+                            : 10;
+
+                localStorage.setItem('selectedConversationId', conversationId);
+                localStorage.setItem('selectedFortuneTellerId', fortuneTellerId);
+                localStorage.setItem('selectedFortuneTellerName', displayName);
+                localStorage.setItem('selectedFortuneTellerPrice', pricePerChar);
+
+                window.location.href =
+                    `cupids-chat-v2.html?fortuneTellerId=${fortuneTellerId}&conversationId=${conversationId}`;
+            } catch (error) {
+                console.error('チャット開始エラー:', error);
+                alert('チャットを開始できませんでした。もう一度お試しください。');
+            }
+        }
+
+        // 戻る
+        function goBack() {
+            window.location.href = 'cupids-top.html';
+        }
+
+        // Firebase初期化待ち
+        if (window.firebaseReady) {
+            loadProfile();
+        } else {
+            window.addEventListener('firebaseReady', () => {
+                loadProfile();
+            });
+        }
+    </script>
+</body>
+</html>
