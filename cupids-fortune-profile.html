@@ -54,7 +54,7 @@
         .container {
             max-width: 800px;
             margin: 0 auto;
-            padding: 0 0 120px; /* ↓チャットボタンに隠れない用の余白 */
+            padding: 0;
         }
 
         /* プロフィールヘッダー */
@@ -106,7 +106,7 @@
             border-radius: 20px;
             font-size: 14px;
             font-weight: bold;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
         }
 
         .profile-status.available {
@@ -128,17 +128,9 @@
             font-size: 18px;
             color: #9370DB;
             font-weight: bold;
-            margin-bottom: 6px;
+            margin-bottom: 10px;
         }
-
-        .profile-actions {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-            margin-top: 6px;
-        }
-
+        
         .point-purchase-link {
             display: inline-block;
             padding: 8px 16px;
@@ -148,9 +140,10 @@
             border-radius: 20px;
             font-size: 13px;
             font-weight: 600;
+            margin-top: 8px;
             transition: all 0.2s;
         }
-
+        
         .point-purchase-link:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
@@ -195,7 +188,7 @@
             white-space: pre-wrap;
         }
 
-        /* レビュー項目 */
+        /* レビュー */
         .review-item {
             padding: 16px;
             border-bottom: 1px solid #f0f0f0;
@@ -279,14 +272,15 @@
             color: #999;
         }
 
-        /* レビューボタン（ヘッダー用） */
+        /* レビューボタン */
         .review-button {
-            padding: 10px 20px;
+            width: 100%;
+            padding: 14px;
             background: linear-gradient(135deg, #ff6ec4 0%, #7873f5 100%);
             color: white;
             border: none;
-            border-radius: 20px;
-            font-size: 14px;
+            border-radius: 10px;
+            font-size: 16px;
             font-weight: bold;
             cursor: pointer;
             transition: all 0.2s;
@@ -360,7 +354,7 @@
 
         .modal-body {
             padding: 20px;
-            overflow-y: auto; /* ここがスクロール領域 */
+            overflow-y: auto;
             flex: 1;
         }
     </style>
@@ -460,7 +454,7 @@
 
                 const ftData = ftDoc.data() || {};
 
-                // reviewsコレクションから実レビュー件数を取得
+                // reviewsコレクションからレビューを取得
                 const reviewsRef = window.firebaseCollection(window.firebaseDB, 'reviews');
                 const reviewsQuery = window.firebaseQuery(
                     reviewsRef,
@@ -468,13 +462,24 @@
                 );
                 const reviewsSnapshot = await window.firebaseGetDocs(reviewsQuery);
 
-                const actualReviewCount = reviewsSnapshot.size || 0;
+                // 実際のレビュー件数（★のみ含む）と、コメント付きレビュー数
+                let actualReviewCount = 0;
+                let commentReviewCount = 0;
+
+                reviewsSnapshot.forEach((docSnap) => {
+                    const review = docSnap.data() || {};
+                    actualReviewCount++;
+                    if (review.comment && review.comment.trim() !== '') {
+                        commentReviewCount++;
+                    }
+                });
 
                 // プロフィール情報をグローバルに保持
                 fortuneTellerData = {
                     id: ftDoc.id,
                     ...ftData,
-                    actualReviewCount
+                    actualReviewCount,
+                    commentReviewCount
                 };
 
                 // プロフィールを表示
@@ -511,15 +516,13 @@
                 ? ft.specialty.split(',').map(tag => tag.trim()).filter(Boolean)
                 : [];
 
-            // 実レビュー数
+            // 実レビュー数（★のみも含む）
             const actualReviewCount =
                 typeof ft.actualReviewCount === 'number' && !isNaN(ft.actualReviewCount)
                     ? ft.actualReviewCount
-                    : typeof ft.reviewCount === 'number' && !isNaN(ft.reviewCount)
-                        ? ft.reviewCount
-                        : 0;
+                    : 0;
 
-            // 管理画面の基準レビュー
+            // 管理画面の基準レビュー（＋10とか）
             const baseCountRaw =
                 typeof ft.baseReviewCount === 'number' && !isNaN(ft.baseReviewCount)
                     ? ft.baseReviewCount
@@ -528,8 +531,14 @@
                         : 0;
             const baseReviewCount = Math.max(0, baseCountRaw);
 
-            // 表示用の鑑定数
+            // 表示用の鑑定数 = 実レビュー + 基準値
             const totalReviewCount = actualReviewCount + baseReviewCount;
+
+            // コメント付きレビュー件数（表示に使う）
+            const commentReviewCount =
+                typeof ft.commentReviewCount === 'number' && !isNaN(ft.commentReviewCount)
+                    ? ft.commentReviewCount
+                    : 0;
 
             // 平均評価
             const averageRating =
@@ -545,6 +554,7 @@
                         ? ft.price
                         : 10;
 
+            // チャット画面に渡す用
             if (fortuneTellerData) {
                 fortuneTellerData.pricePerChar = pricePerChar;
             }
@@ -561,14 +571,7 @@
                     </div>
                     <div class="profile-status ${statusClass}">${statusText}</div>
                     <div class="profile-price">1文字 ${pricePerChar}pt</div>
-                    <div class="profile-actions">
-                        <a href="https://minamisan.square.site/" target="_blank" class="point-purchase-link">
-                            💳 ポイント購入
-                        </a>
-                        <button class="review-button" onclick="openReviewModal()">
-                            レビューを見る（${totalReviewCount}件）
-                        </button>
-                    </div>
+                    <a href="https://minamisan.square.site/" target="_blank" class="point-purchase-link">💳 ポイント購入</a>
                 </div>
 
                 ${tags.length > 0 ? `
@@ -582,9 +585,14 @@
 
                 <div class="profile-section">
                     <div class="section-title">プロフィール</div>
-                    <div class="profile-description">
-                        ${ft.profileMessage || 'プロフィールメッセージがありません'}
-                    </div>
+                    <div class="profile-description">${ft.profileMessage || 'プロフィールメッセージがありません'}</div>
+                </div>
+
+                <div class="profile-section">
+                    <div class="section-title">レビュー (${commentReviewCount}件)</div>
+                    <button class="review-button" onclick="openReviewModal()">
+                        レビューを見る
+                    </button>
                 </div>
             `;
 
@@ -637,6 +645,7 @@
                 reviewsList.innerHTML = '';
 
                 reviews.forEach(review => {
+                    // コメントなしはスキップ
                     if (!review.comment || review.comment.trim() === '') {
                         return;
                     }
