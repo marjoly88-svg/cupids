@@ -54,7 +54,7 @@
         .container {
             max-width: 800px;
             margin: 0 auto;
-            padding: 0;
+            padding: 0 0 120px; /* 下に余白を足してチャットボタンと被らないように */
         }
 
         /* プロフィールヘッダー */
@@ -106,7 +106,7 @@
             border-radius: 20px;
             font-size: 14px;
             font-weight: bold;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
         }
 
         .profile-status.available {
@@ -128,9 +128,17 @@
             font-size: 18px;
             color: #9370DB;
             font-weight: bold;
-            margin-bottom: 10px;
+            margin-bottom: 6px;
         }
-        
+
+        .profile-actions {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            margin-top: 6px;
+        }
+
         .point-purchase-link {
             display: inline-block;
             padding: 8px 16px;
@@ -140,10 +148,9 @@
             border-radius: 20px;
             font-size: 13px;
             font-weight: 600;
-            margin-top: 8px;
             transition: all 0.2s;
         }
-        
+
         .point-purchase-link:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
@@ -188,7 +195,7 @@
             white-space: pre-wrap;
         }
 
-        /* レビュー一覧の共通スタイル */
+        /* レビュー */
         .review-item {
             padding: 16px;
             border-bottom: 1px solid #f0f0f0;
@@ -219,7 +226,6 @@
             font-size: 14px;
             color: #666;
             line-height: 1.6;
-            white-space: pre-wrap;
         }
 
         .no-reviews {
@@ -227,51 +233,6 @@
             color: #999;
             padding: 30px;
             font-size: 14px;
-        }
-
-        /* 折り畳みレビュー */
-        .reviews-toggle {
-            width: 100%;
-            padding: 12px 16px;
-            margin-bottom: 10px;
-            background: linear-gradient(135deg, #ff6ec4 0%, #7873f5 100%);
-            color: #ffffff;
-            border: none;
-            border-radius: 10px;
-            font-size: 15px;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .reviews-toggle:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(255,110,196,0.35);
-        }
-
-        .reviews-toggle span:last-child {
-            font-size: 18px;
-        }
-
-        .reviews-container {
-            border-radius: 10px;
-            border: 1px solid #e5e7eb;
-            background: #ffffff;
-            overflow: hidden;
-            max-height: 0;
-            transition: max-height 0.25s ease;
-        }
-
-        .reviews-container.open {
-            max-height: 520px; /* 10件くらい見える高さ想定 */
-        }
-
-        .reviews-list {
-            max-height: 500px;   /* 中身だけスクロール */
-            overflow-y: auto;
         }
 
         /* チャット開始ボタン */
@@ -317,6 +278,91 @@
             padding: 40px;
             color: #999;
         }
+
+        /* レビューボタン（ヘッダー用） */
+        .review-button {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #ff6ec4 0%, #7873f5 100%);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .review-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(255,110,196,0.4);
+        }
+
+        /* モーダル */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            max-width: 800px;
+            width: 90%;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-header h2 {
+            font-size: 20px;
+            color: #333;
+            margin: 0;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 32px;
+            color: #999;
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.2s;
+        }
+
+        .modal-close:hover {
+            color: #333;
+        }
+
+        .modal-body {
+            padding: 20px;
+            overflow-y: auto; /* ここがスクロール領域（10件以上はスクロールで読む感じ） */
+            flex: 1;
+        }
     </style>
 </head>
 <body>
@@ -337,6 +383,19 @@
         <button id="chatButton" class="chat-button" onclick="startChat()">
             💬 チャットを始める
         </button>
+    </div>
+
+    <!-- レビューモーダル -->
+    <div id="reviewModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>レビュー</h2>
+                <button class="modal-close" onclick="closeReviewModal()">×</button>
+            </div>
+            <div class="modal-body" id="modalReviewsList">
+                <div class="loading">読み込み中...</div>
+            </div>
+        </div>
     </div>
 
     <!-- Firebase SDK 初期化 -->
@@ -373,350 +432,3 @@
         window.dispatchEvent(new Event('firebaseReady'));
         console.log('✅ Firebase初期化完了!');
     </script>
-
-    <!-- アプリ本体 -->
-    <script>
-        // URLパラメータから占い師IDを取得
-        const urlParams = new URLSearchParams(window.location.search);
-        const fortuneTellerId = urlParams.get('id');
-
-        if (!fortuneTellerId) {
-            alert('占い師が指定されていません');
-            window.location.href = 'cupids-client-login.html';
-        }
-
-        let fortuneTellerData = null;
-
-        // 占い師のプロフィールを読み込み
-        async function loadProfile() {
-            try {
-                const ftRef = window.firebaseDoc(window.firebaseDB, 'fortuneTellers', fortuneTellerId);
-                const ftDoc = await window.firebaseGetDoc(ftRef);
-
-                if (!ftDoc.exists()) {
-                    document.getElementById('profileContent').innerHTML =
-                        '<div class="loading">占い師が見つかりません</div>';
-                    return;
-                }
-
-                const ftData = ftDoc.data() || {};
-
-                // reviewsコレクションから実レビュー件数を取得
-                const reviewsRef = window.firebaseCollection(window.firebaseDB, 'reviews');
-                const reviewsQuery = window.firebaseQuery(
-                    reviewsRef,
-                    window.firebaseWhere('fortuneTellerId', '==', fortuneTellerId)
-                );
-                const reviewsSnapshot = await window.firebaseGetDocs(reviewsQuery);
-
-                const actualReviewCount = reviewsSnapshot.size || 0;
-
-                // プロフィール情報をグローバルに保持
-                fortuneTellerData = {
-                    id: ftDoc.id,
-                    ...ftData,
-                    actualReviewCount
-                };
-
-                // プロフィールを表示
-                displayProfile(fortuneTellerData);
-            } catch (error) {
-                console.error('プロフィール読み込みエラー:', error);
-                document.getElementById('profileContent').innerHTML =
-                    '<div class="loading">読み込みに失敗しました</div>';
-            }
-        }
-
-        // プロフィールを表示
-        function displayProfile(ft) {
-            const statusText =
-                ft.status === 'available'
-                    ? 'すぐ占えます'
-                    : ft.status === 'accepting'
-                        ? '鑑定受付中（24時間以内に返信）'
-                        : '鑑定停止中';
-
-            const statusClass =
-                ft.status === 'available'
-                    ? 'available'
-                    : ft.status === 'accepting'
-                        ? 'accepting'
-                        : 'stopped';
-
-            const imageUrl = ft.photoURL || ft.profileImageUrl || ft.imageUrl;
-            const avatarContent = imageUrl
-                ? `<img src="${imageUrl}" class="profile-avatar" />`
-                : `<div class="profile-avatar">${(ft.name || '？').charAt(0)}</div>`;
-
-            const tags = ft.specialty
-                ? ft.specialty.split(',').map(tag => tag.trim()).filter(Boolean)
-                : [];
-
-            // 実レビュー数
-            const actualReviewCount =
-                typeof ft.actualReviewCount === 'number' && !isNaN(ft.actualReviewCount)
-                    ? ft.actualReviewCount
-                    : typeof ft.reviewCount === 'number' && !isNaN(ft.reviewCount)
-                        ? ft.reviewCount
-                        : 0;
-
-            // 管理画面の基準レビュー（＋10とか）
-            const baseCountRaw =
-                typeof ft.baseReviewCount === 'number' && !isNaN(ft.baseReviewCount)
-                    ? ft.baseReviewCount
-                    : typeof ft.dummyReviewCount === 'number' && !isNaN(ft.dummyReviewCount)
-                        ? ft.dummyReviewCount
-                        : 0;
-            const baseReviewCount = Math.max(0, baseCountRaw);
-
-            // 表示用の鑑定数 = 実レビュー + 基準値
-            const totalReviewCount = actualReviewCount + baseReviewCount;
-
-            // 平均評価
-            const averageRating =
-                typeof ft.averageRating === 'number' && !isNaN(ft.averageRating)
-                    ? Number(ft.averageRating).toFixed(1)
-                    : '5.0';
-
-            // 1文字単価
-            const pricePerChar =
-                typeof ft.pricePerChar === 'number' && !isNaN(ft.pricePerChar)
-                    ? ft.pricePerChar
-                    : typeof ft.price === 'number' && !isNaN(ft.price)
-                        ? ft.price
-                        : 10;
-
-            // ここで pricePerChar を保持しておく（チャット画面に渡す用）
-            if (fortuneTellerData) {
-                fortuneTellerData.pricePerChar = pricePerChar;
-            }
-
-            const html = `
-                <div class="profile-header">
-                    ${avatarContent}
-                    <div class="profile-name">${ft.name || '占い師'}</div>
-                    <div class="profile-rating">
-                        <span class="star">⭐</span>
-                        <span>${averageRating}</span>
-                        <span>|</span>
-                        <span>鑑定数 ${totalReviewCount}件</span>
-                    </div>
-                    <div class="profile-status ${statusClass}">${statusText}</div>
-                    <div class="profile-price">1文字 ${pricePerChar}pt</div>
-                    <a href="https://minamisan.square.site/" target="_blank" class="point-purchase-link">💳 ポイント購入</a>
-                </div>
-
-                ${tags.length > 0 ? `
-                <div class="profile-section">
-                    <div class="section-title">得意分野</div>
-                    <div class="profile-tags">
-                        ${tags.map(tag => `<span class="profile-tag">${tag}</span>`).join('')}
-                    </div>
-                </div>
-                ` : ''}
-
-                <div class="profile-section">
-                    <div class="section-title">プロフィール</div>
-                    <div class="profile-description">${ft.profileMessage || 'プロフィールメッセージがありません'}</div>
-                </div>
-
-                <div class="profile-section">
-                    <div class="section-title">レビュー (${totalReviewCount}件)</div>
-                    <button class="reviews-toggle" type="button" onclick="toggleReviews()">
-                        <span>レビュー一覧を表示 / 非表示</span>
-                        <span id="reviewsToggleIcon">▼</span>
-                    </button>
-                    <div id="reviewsContainer" class="reviews-container">
-                        <div id="reviewsList" class="reviews-list">
-                            <div class="loading">読み込み中...</div>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            document.getElementById('profileContent').innerHTML = html;
-
-            // チャットボタンの状態
-            const chatButton = document.getElementById('chatButton');
-            if (ft.status === 'stopped') {
-                chatButton.disabled = true;
-                chatButton.textContent = '現在鑑定を受け付けていません';
-            } else {
-                chatButton.disabled = false;
-                chatButton.textContent = '💬 チャットを始める';
-            }
-        }
-
-        // レビュー折り畳みトグル
-        function toggleReviews() {
-            const container = document.getElementById('reviewsContainer');
-            const icon = document.getElementById('reviewsToggleIcon');
-            if (!container || !icon) return;
-
-            const isOpen = container.classList.contains('open');
-
-            if (isOpen) {
-                container.classList.remove('open');
-                container.style.maxHeight = '0';
-                icon.textContent = '▼';
-            } else {
-                container.classList.add('open');
-                container.style.maxHeight = '520px';
-                icon.textContent = '▲';
-
-                // 初回だけロード
-                if (!container.dataset.loaded) {
-                    loadProfileReviews();
-                    container.dataset.loaded = '1';
-                }
-            }
-        }
-
-        // レビュー一覧読み込み（プロフィール用）
-        async function loadProfileReviews() {
-            const listElem = document.getElementById('reviewsList');
-            if (!listElem) return;
-
-            listElem.innerHTML = '<div class="loading">読み込み中...</div>';
-
-            try {
-                const reviewsRef = window.firebaseCollection(window.firebaseDB, 'reviews');
-                const reviewsQuery = window.firebaseQuery(
-                    reviewsRef,
-                    window.firebaseWhere('fortuneTellerId', '==', fortuneTellerId)
-                );
-                const reviewsSnapshot = await window.firebaseGetDocs(reviewsQuery);
-
-                if (reviewsSnapshot.empty) {
-                    listElem.innerHTML = '<div class="no-reviews">まだレビューがありません</div>';
-                    return;
-                }
-
-                const reviews = [];
-                reviewsSnapshot.forEach(docSnap => {
-                    reviews.push(docSnap.data());
-                });
-
-                // 新しい日付順にソート
-                reviews.sort((a, b) => {
-                    const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-                    const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-                    return bTime - aTime;
-                });
-
-                listElem.innerHTML = '';
-
-                reviews.forEach(review => {
-                    // コメントなしはスキップ
-                    if (!review.comment || review.comment.trim() === '') {
-                        return;
-                    }
-
-                    const reviewDiv = document.createElement('div');
-                    reviewDiv.className = 'review-item';
-
-                    const stars = '⭐'.repeat(review.rating || 5);
-                    const date = review.createdAt
-                        ? new Date(review.createdAt).toLocaleDateString('ja-JP')
-                        : '';
-                    const comment = review.comment || '';
-
-                    reviewDiv.innerHTML = `
-                        <div class="review-header">
-                            <div class="review-date">${date}</div>
-                            <div class="review-stars">${stars}</div>
-                        </div>
-                        <div class="review-comment">${comment}</div>
-                    `;
-
-                    listElem.appendChild(reviewDiv);
-                });
-
-                if (listElem.children.length === 0) {
-                    listElem.innerHTML = '<div class="no-reviews">まだコメント付きレビューがありません</div>';
-                }
-            } catch (error) {
-                console.error('レビュー読み込みエラー:', error);
-                listElem.innerHTML = '<div class="no-reviews">レビューの読み込みに失敗しました</div>';
-            }
-        }
-
-        // チャットを開始
-        async function startChat() {
-            const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
-
-            if (!currentUser || currentUser.type !== 'client') {
-                localStorage.setItem('returnToFortuneTeller', fortuneTellerId);
-                window.location.href = 'cupids-client-login.html';
-                return;
-            }
-
-            if (!window.firebaseDB) {
-                alert('システムを準備中です。少しお待ちください。');
-                return;
-            }
-
-            try {
-                const conversationsRef = window.firebaseCollection(window.firebaseDB, 'conversations');
-                const q = window.firebaseQuery(
-                    conversationsRef,
-                    window.firebaseWhere('clientId', '==', currentUser.uid),
-                    window.firebaseWhere('fortuneTellerId', '==', fortuneTellerId)
-                );
-
-                const querySnapshot = await window.firebaseGetDocs(q);
-                let conversationId;
-
-                if (!querySnapshot.empty) {
-                    conversationId = querySnapshot.docs[0].id;
-                } else {
-                    const nowIso = new Date().toISOString();
-                    const newConvRef = await window.firebaseAddDoc(conversationsRef, {
-                        clientId: currentUser.uid,
-                        fortuneTellerId: fortuneTellerId,
-                        status: 'not-started',
-                        createdAt: nowIso,
-                        lastMessage: '',
-                        lastMessageAt: nowIso
-                    });
-                    conversationId = newConvRef.id;
-                }
-
-                const ft = fortuneTellerData || {};
-                const displayName = ft.name || ft.displayName || '占い師';
-                const pricePerChar =
-                    typeof ft.pricePerChar === 'number' && !isNaN(ft.pricePerChar)
-                        ? ft.pricePerChar
-                        : typeof ft.price === 'number' && !isNaN(ft.price)
-                            ? ft.price
-                            : 10;
-
-                localStorage.setItem('selectedConversationId', conversationId);
-                localStorage.setItem('selectedFortuneTellerId', fortuneTellerId);
-                localStorage.setItem('selectedFortuneTellerName', displayName);
-                localStorage.setItem('selectedFortuneTellerPrice', pricePerChar);
-
-                window.location.href =
-                    `cupids-chat-v2.html?fortuneTellerId=${fortuneTellerId}&conversationId=${conversationId}`;
-            } catch (error) {
-                console.error('チャット開始エラー:', error);
-                alert('チャットを開始できませんでした。もう一度お試しください。');
-            }
-        }
-
-        // 戻る
-        function goBack() {
-            window.location.href = 'cupids-top.html';
-        }
-
-        // Firebase初期化待ち
-        if (window.firebaseReady) {
-            loadProfile();
-        } else {
-            window.addEventListener('firebaseReady', () => {
-                loadProfile();
-            });
-        }
-    </script>
-</body>
-</html>
