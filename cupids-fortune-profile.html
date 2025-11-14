@@ -444,23 +444,40 @@
 
             const ftData = ftDoc.data() || {};
 
-            // reviews から実レビュー数＆コメント付きレビュー数を集計
-            const reviewsRef = window.firebaseCollection(window.firebaseDB, 'reviews');
-            const reviewsQuery = window.firebaseQuery(
-                reviewsRef,
-                window.firebaseWhere('fortuneTellerId', '==', fortuneTellerId)
-            );
-            const reviewsSnapshot = await window.firebaseGetDocs(reviewsQuery);
+            // まずはドキュメント側の値をデフォルトとして使う
+            let actualReviewCount =
+                typeof ftData.actualReviewCount === 'number' && !isNaN(ftData.actualReviewCount)
+                    ? ftData.actualReviewCount
+                    : 0;
 
-            let actualReviewCount = 0;
-            let commentReviewCount = 0;
-            reviewsSnapshot.forEach(doc => {
-                const r = doc.data() || {};
-                actualReviewCount++;
-                if (r.comment && String(r.comment).trim() !== '') {
-                    commentReviewCount++;
-                }
-            });
+            let commentReviewCount =
+                typeof ftData.commentReviewCount === 'number' && !isNaN(ftData.commentReviewCount)
+                    ? ftData.commentReviewCount
+                    : 0;
+
+            // reviews コレクションから取得 & 再計算（読める場合だけ）
+            try {
+                const reviewsRef = window.firebaseCollection(window.firebaseDB, 'reviews');
+                const reviewsQuery = window.firebaseQuery(
+                    reviewsRef,
+                    window.firebaseWhere('fortuneTellerId', '==', fortuneTellerId)
+                );
+                const reviewsSnapshot = await window.firebaseGetDocs(reviewsQuery);
+
+                actualReviewCount = 0;
+                commentReviewCount = 0;
+
+                reviewsSnapshot.forEach(docSnap => {
+                    const r = docSnap.data() || {};
+                    actualReviewCount++;
+                    if (r.comment && String(r.comment).trim() !== '') {
+                        commentReviewCount++;
+                    }
+                });
+            } catch (reviewError) {
+                console.warn('レビューの取得に失敗しましたがプロフィールは表示します:', reviewError);
+                // 読み込めなかった場合は ftData に入っている値（または 0）のまま使う
+            }
 
             fortuneTellerData = {
                 id: ftDoc.id,
