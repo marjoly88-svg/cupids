@@ -188,7 +188,7 @@
             white-space: pre-wrap;
         }
 
-        /* レビュー */
+        /* レビュー一覧の共通スタイル */
         .review-item {
             padding: 16px;
             border-bottom: 1px solid #f0f0f0;
@@ -219,6 +219,7 @@
             font-size: 14px;
             color: #666;
             line-height: 1.6;
+            white-space: pre-wrap;
         }
 
         .no-reviews {
@@ -226,6 +227,51 @@
             color: #999;
             padding: 30px;
             font-size: 14px;
+        }
+
+        /* 折り畳みレビュー */
+        .reviews-toggle {
+            width: 100%;
+            padding: 12px 16px;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #ff6ec4 0%, #7873f5 100%);
+            color: #ffffff;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .reviews-toggle:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255,110,196,0.35);
+        }
+
+        .reviews-toggle span:last-child {
+            font-size: 18px;
+        }
+
+        .reviews-container {
+            border-radius: 10px;
+            border: 1px solid #e5e7eb;
+            background: #ffffff;
+            overflow: hidden;
+            max-height: 0;
+            transition: max-height 0.25s ease;
+        }
+
+        .reviews-container.open {
+            max-height: 520px; /* 10件くらい見える高さ想定 */
+        }
+
+        .reviews-list {
+            max-height: 500px;   /* 中身だけスクロール */
+            overflow-y: auto;
         }
 
         /* チャット開始ボタン */
@@ -271,92 +317,6 @@
             padding: 40px;
             color: #999;
         }
-
-        /* レビューボタン */
-        .review-button {
-            width: 100%;
-            padding: 14px;
-            background: linear-gradient(135deg, #ff6ec4 0%, #7873f5 100%);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .review-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(255,110,196,0.4);
-        }
-
-        /* モーダル */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal.active {
-            display: flex;
-        }
-
-        .modal-content {
-            background: white;
-            border-radius: 15px;
-            max-width: 800px;
-            width: 90%;
-            max-height: 80vh;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .modal-header {
-            padding: 20px;
-            border-bottom: 1px solid #f0f0f0;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .modal-header h2 {
-            font-size: 20px;
-            color: #333;
-            margin: 0;
-        }
-
-        .modal-close {
-            background: none;
-            border: none;
-            font-size: 32px;
-            color: #999;
-            cursor: pointer;
-            padding: 0;
-            width: 32px;
-            height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: color 0.2s;
-        }
-
-        .modal-close:hover {
-            color: #333;
-        }
-
-        .modal-body {
-            padding: 20px;
-            overflow-y: auto;
-            flex: 1;
-        }
     </style>
 </head>
 <body>
@@ -377,19 +337,6 @@
         <button id="chatButton" class="chat-button" onclick="startChat()">
             💬 チャットを始める
         </button>
-    </div>
-
-    <!-- レビューモーダル -->
-    <div id="reviewModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>レビュー</h2>
-                <button class="modal-close" onclick="closeReviewModal()">×</button>
-            </div>
-            <div class="modal-body" id="modalReviewsList">
-                <div class="loading">読み込み中...</div>
-            </div>
-        </div>
     </div>
 
     <!-- Firebase SDK 初期化 -->
@@ -575,9 +522,15 @@
 
                 <div class="profile-section">
                     <div class="section-title">レビュー (${totalReviewCount}件)</div>
-                    <button class="review-button" onclick="openReviewModal()">
-                        レビューを見る
+                    <button class="reviews-toggle" type="button" onclick="toggleReviews()">
+                        <span>レビュー一覧を表示 / 非表示</span>
+                        <span id="reviewsToggleIcon">▼</span>
                     </button>
+                    <div id="reviewsContainer" class="reviews-container">
+                        <div id="reviewsList" class="reviews-list">
+                            <div class="loading">読み込み中...</div>
+                        </div>
+                    </div>
                 </div>
             `;
 
@@ -594,13 +547,37 @@
             }
         }
 
-        // レビューモーダルを開く
-        async function openReviewModal() {
-            const modal = document.getElementById('reviewModal');
-            const reviewsList = document.getElementById('modalReviewsList');
+        // レビュー折り畳みトグル
+        function toggleReviews() {
+            const container = document.getElementById('reviewsContainer');
+            const icon = document.getElementById('reviewsToggleIcon');
+            if (!container || !icon) return;
 
-            modal.classList.add('active');
-            reviewsList.innerHTML = '<div class="loading">読み込み中...</div>';
+            const isOpen = container.classList.contains('open');
+
+            if (isOpen) {
+                container.classList.remove('open');
+                container.style.maxHeight = '0';
+                icon.textContent = '▼';
+            } else {
+                container.classList.add('open');
+                container.style.maxHeight = '520px';
+                icon.textContent = '▲';
+
+                // 初回だけロード
+                if (!container.dataset.loaded) {
+                    loadProfileReviews();
+                    container.dataset.loaded = '1';
+                }
+            }
+        }
+
+        // レビュー一覧読み込み（プロフィール用）
+        async function loadProfileReviews() {
+            const listElem = document.getElementById('reviewsList');
+            if (!listElem) return;
+
+            listElem.innerHTML = '<div class="loading">読み込み中...</div>';
 
             try {
                 const reviewsRef = window.firebaseCollection(window.firebaseDB, 'reviews');
@@ -611,23 +588,23 @@
                 const reviewsSnapshot = await window.firebaseGetDocs(reviewsQuery);
 
                 if (reviewsSnapshot.empty) {
-                    reviewsList.innerHTML = '<div class="no-reviews">まだレビューがありません</div>';
+                    listElem.innerHTML = '<div class="no-reviews">まだレビューがありません</div>';
                     return;
                 }
 
                 const reviews = [];
-                reviewsSnapshot.forEach(doc => {
-                    reviews.push(doc.data());
+                reviewsSnapshot.forEach(docSnap => {
+                    reviews.push(docSnap.data());
                 });
 
-                // 新しい日付順
+                // 新しい日付順にソート
                 reviews.sort((a, b) => {
                     const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
                     const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
                     return bTime - aTime;
                 });
 
-                reviewsList.innerHTML = '';
+                listElem.innerHTML = '';
 
                 reviews.forEach(review => {
                     // コメントなしはスキップ
@@ -652,31 +629,17 @@
                         <div class="review-comment">${comment}</div>
                     `;
 
-                    reviewsList.appendChild(reviewDiv);
+                    listElem.appendChild(reviewDiv);
                 });
 
-                if (reviewsList.children.length === 0) {
-                    reviewsList.innerHTML = '<div class="no-reviews">まだコメント付きレビューがありません</div>';
+                if (listElem.children.length === 0) {
+                    listElem.innerHTML = '<div class="no-reviews">まだコメント付きレビューがありません</div>';
                 }
             } catch (error) {
                 console.error('レビュー読み込みエラー:', error);
-                reviewsList.innerHTML = '<div class="no-reviews">レビューの読み込みに失敗しました</div>';
+                listElem.innerHTML = '<div class="no-reviews">レビューの読み込みに失敗しました</div>';
             }
         }
-
-        // レビューモーダルを閉じる
-        function closeReviewModal() {
-            const modal = document.getElementById('reviewModal');
-            modal.classList.remove('active');
-        }
-
-        // モーダル外クリックで閉じる
-        window.addEventListener('click', function (event) {
-            const modal = document.getElementById('reviewModal');
-            if (event.target === modal) {
-                closeReviewModal();
-            }
-        });
 
         // チャットを開始
         async function startChat() {
