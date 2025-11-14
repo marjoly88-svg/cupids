@@ -783,25 +783,6 @@
                 }
             });
         
-        // 管理者として自動ログイン（安全用）
-        async function adminAutoLogin() {
-            try {
-                await signInWithEmailAndPassword(auth, 'admin@cupids-chat.com', 'memetan1031admin');
-                console.log('✅ 管理者認証成功');
-            } catch (error) {
-                if (error.code === 'auth/user-not-found') {
-                    try {
-                        await createUserWithEmailAndPassword(auth, 'admin@cupids-chat.com', 'memetan1031admin');
-                        console.log('✅ 管理者アカウント作成完了');
-                    } catch (createError) {
-                        console.error('管理者アカウント作成エラー:', createError);
-                    }
-                } else if (error.code === 'auth/invalid-credential') {
-                    console.error('認証情報が無効です');
-                }
-            }
-        }
-        
         window.firebaseAuth = auth;
         window.firebaseDB = db;
         window.firebaseStorage = storage;
@@ -840,6 +821,21 @@
         if (!currentUser || currentUser.type !== 'admin') {
             alert('管理者としてログインしてください');
             window.location.href = 'cupids-top.html';
+        }
+
+        // 報酬率を計算するヘルパー（前月の「占い師取り分」で判定）
+        function calcCommissionRate(ft) {
+            if (ft.fixedCommissionRate) {
+                return ft.fixedCommissionRate;
+            }
+            const previousRevenue = ft.previousMonthRevenue || 0; // ここは占い師の取り分金額で保存すると想定
+
+            if (previousRevenue >= 270000) return 40;
+            if (previousRevenue >= 210000) return 38;
+            if (previousRevenue >= 150000) return 36;
+            if (previousRevenue >= 90000)  return 34;
+            if (previousRevenue >= 30000)  return 32;
+            return 30; // 初期
         }
 
         // データ読み込み
@@ -885,28 +881,8 @@
                             ? ft.currentMonthSales
                             : 0;
                     monthlyRevenue += revenue;
-                    
-                    // 報酬率（固定あればそれ優先）
-                    let commissionRate;
-                    if (ft.fixedCommissionRate) {
-                        commissionRate = ft.fixedCommissionRate;
-                    } else {
-                        const previousRevenue = ft.previousMonthRevenue || 0;
-                        if (previousRevenue >= 270000) {
-                            commissionRate = 40;
-                        } else if (previousRevenue >= 210000) {
-                            commissionRate = 38;
-                        } else if (previousRevenue >= 150000) {
-                            commissionRate = 36;
-                        } else if (previousRevenue >= 90000) {
-                            commissionRate = 34;
-                        } else if (previousRevenue >= 30000) {
-                            commissionRate = 32;
-                        } else {
-                            commissionRate = 30;
-                        }
-                    }
-                    
+
+                    const commissionRate = calcCommissionRate(ft);
                     totalCommission += revenue * (commissionRate / 100);
                 });
                 
@@ -991,29 +967,15 @@
                 const totalReviews = ft.totalReviews || 0;
                 const baseReviewCount = ft.baseReviewCount || 0;
 
-                const ratingDisplay = ft.ratingFixed 
-                    ? `<span class="star-display">⭐ ${ft.averageRating || 0}</span><span class="fixed-badge">🔒 固定</span><br><button class="btn btn-sm btn-info" onclick="updateBaseReviewCount('${ft.id}', '${ft.name}')" style="margin-top: 5px;">鑑定 ${totalReviews}件${baseReviewCount > 0 ? ' (基準:' + baseReviewCount + ')' : ''}</button>` 
-                    : `<span class="star-display">⭐ ${ft.averageRating || 0}</span><br><button class="btn btn-sm btn-info" onclick="updateBaseReviewCount('${ft.id}', '${ft.name}')" style="margin-top: 5px;">鑑定 ${totalReviews}件${baseReviewCount > 0 ? ' (基準:' + baseReviewCount + ')' : ''}</button>`;
+                const ratingDisplay = `
+                    <span class="star-display">⭐ ${ft.averageRating || 0}</span>
+                    ${ft.ratingFixed ? '<span class="fixed-badge">🔒 固定</span>' : ''}
+                    <div style="margin-top:4px;font-size:12px;color:#666;">
+                        鑑定 ${totalReviews}件${baseReviewCount > 0 ? ' (基準:' + baseReviewCount + ')' : ''}
+                    </div>
+                `;
 
-                let commissionRate;
-                if (ft.fixedCommissionRate) {
-                    commissionRate = ft.fixedCommissionRate;
-                } else {
-                    const previousRevenue = ft.previousMonthRevenue || 0;
-                    if (previousRevenue >= 270000) {
-                        commissionRate = 40;
-                    } else if (previousRevenue >= 210000) {
-                        commissionRate = 38;
-                    } else if (previousRevenue >= 150000) {
-                        commissionRate = 36;
-                    } else if (previousRevenue >= 90000) {
-                        commissionRate = 34;
-                    } else if (previousRevenue >= 30000) {
-                        commissionRate = 32;
-                    } else {
-                        commissionRate = 30;
-                    }
-                }
+                const commissionRate = calcCommissionRate(ft);
                 
                 const commissionDisplay = ft.fixedCommissionRate 
                     ? `<strong>${commissionRate}%</strong><span class="fixed-badge">🔒 固定</span>` 
@@ -1101,18 +1063,7 @@
                     statusClass = 'inactive';
                 }
 
-                let commissionRate;
-                if (ft.fixedCommissionRate) {
-                    commissionRate = ft.fixedCommissionRate;
-                } else {
-                    const previousRevenue = ft.previousMonthRevenue || 0;
-                    if (previousRevenue >= 270000) commissionRate = 40;
-                    else if (previousRevenue >= 210000) commissionRate = 38;
-                    else if (previousRevenue >= 150000) commissionRate = 36;
-                    else if (previousRevenue >= 90000) commissionRate = 34;
-                    else if (previousRevenue >= 30000) commissionRate = 32;
-                    else commissionRate = 30;
-                }
+                const commissionRate = calcCommissionRate(ft);
 
                 const card = document.createElement('div');
                 card.className = 'ft-card';
@@ -1176,6 +1127,113 @@
             });
         }
 
+        // ★ 料金変更
+        async function editPrice(ftId, ftName, currentPrice) {
+            const input = prompt(
+                `占い師「${ftName}」の1文字あたりの料金(pt)を入力してください。`,
+                currentPrice != null ? String(currentPrice) : '10'
+            );
+            if (input === null) return;
+
+            const price = parseInt(input, 10);
+            if (isNaN(price) || price <= 0) {
+                alert('1以上の数字を入力してください');
+                return;
+            }
+
+            try {
+                const ftRef = window.firebaseDoc(window.firebaseDB, 'fortuneTellers', ftId);
+                await window.firebaseUpdateDoc(ftRef, {
+                    price: price,
+                    pricePerChar: price
+                });
+                alert(`料金を ${price}pt/文字 に更新しました`);
+                loadData();
+            } catch (error) {
+                console.error('料金変更エラー:', error);
+                alert('料金の変更に失敗しました: ' + error.message);
+            }
+        }
+
+        // ★ ダミー切り替え
+        async function toggleDummy(ftId, isDummy) {
+            const next = !isDummy;
+            const msg = next
+                ? 'この占い師を「ダミー占い師」に設定しますか？'
+                : 'この占い師の「ダミー設定」を解除しますか？';
+
+            if (!confirm(msg)) return;
+
+            try {
+                const ftRef = window.firebaseDoc(window.firebaseDB, 'fortuneTellers', ftId);
+                await window.firebaseSetDoc(ftRef, {
+                    isDummy: next
+                }, { merge: true });
+
+                alert(next ? 'ダミー占い師に設定しました' : 'ダミー設定を解除しました');
+                loadData();
+            } catch (error) {
+                console.error('ダミー切り替えエラー:', error);
+                alert('ダミー設定の変更に失敗しました: ' + error.message);
+            }
+        }
+
+        // ★ メール通知 ON/OFF
+        async function toggleNotify(ftId, notifyEmail) {
+            const next = !notifyEmail;
+            const msg = next
+                ? 'この占い師への新着相談をメール通知 ON にしますか？'
+                : 'この占い師のメール通知を OFF にしますか？';
+
+            if (!confirm(msg)) return;
+
+            try {
+                const ftRef = window.firebaseDoc(window.firebaseDB, 'fortuneTellers', ftId);
+                await window.firebaseSetDoc(ftRef, {
+                    notifyEmail: next
+                }, { merge: true });
+
+                alert(next ? 'メール通知を ON にしました' : 'メール通知を OFF にしました');
+                loadData();
+            } catch (error) {
+                console.error('通知切り替えエラー:', error);
+                alert('通知設定の変更に失敗しました: ' + error.message);
+            }
+        }
+
+        // ★ 管理画面から占い師としてログイン
+        async function loginAsFortuneTeller(ftId, ftName) {
+            if (!confirm(`占い師「${ftName}」としてログインしますか？\n（管理者なりすましログイン）`)) {
+                return;
+            }
+
+            try {
+                const ftRef = window.firebaseDoc(window.firebaseDB, 'fortuneTellers', ftId);
+                const ftDoc = await window.firebaseGetDoc(ftRef);
+
+                if (!ftDoc.exists()) {
+                    alert('占い師が見つかりません');
+                    return;
+                }
+
+                const data = ftDoc.data() || {};
+                const impersonatedUser = {
+                    uid: ftId,
+                    name: data.name || ftName || '',
+                    email: data.email || '',
+                    type: 'fortune-teller',
+                    impersonatedByAdmin: true
+                };
+
+                localStorage.setItem('currentUser', JSON.stringify(impersonatedUser));
+
+                window.location.href = 'cupids-fortune.html';
+            } catch (error) {
+                console.error('なりすましログインエラー:', error);
+                alert('占い師としてのログインに失敗しました: ' + error.message);
+            }
+        }
+
         // NEWマーク切り替え
         async function toggleFortuneTellerNewMark(ftId, setNew) {
             try {
@@ -1221,7 +1279,7 @@
                 try {
                     const ftRef = window.firebaseDoc(window.firebaseDB, 'fortuneTellers', ftId);
                     await window.firebaseSetDoc(ftRef, {
-                        averageRating: rating,
+                        averageRating: parseFloat(rating.toFixed(1)),
                         ratingFixed: true
                     }, { merge: true });
                     
@@ -1252,7 +1310,7 @@
                     alert('報酬率固定の解除に失敗しました');
                 }
             } else {
-                const newRate = prompt('固定する報酬率を入力してください（%）\n\n例: 60 と入力すると60%固定になります\n通常は30%～40%です', currentRate);
+                const newRate = prompt('固定する報酬率を入力してください（%）\n\n例: 35 と入力すると35%固定になります\n通常は30%～40%です', currentRate);
                 if (newRate === null) return;
                 
                 const rate = parseFloat(newRate);
@@ -1606,7 +1664,7 @@
                     email: email,
                     type: 'fortune-teller',
                     price: price,
-                    pricePerChar: price,      // 念のため
+                    pricePerChar: price,
                     message: message,
                     profileMessage: message,
                     imageUrl: imageUrl,
@@ -1650,7 +1708,7 @@
             }
         });
 
-        // 売上ランキング（★ currentMonthSales を使用）
+        // 売上ランキング（currentMonthSales を使用）
         function displayRanking(fortuneTellers) {
             const rankingList = document.getElementById('rankingList');
             
@@ -1679,25 +1737,7 @@
                         ? ft.currentMonthSales
                         : 0;
                 
-                let commissionRate;
-                if (ft.fixedCommissionRate) {
-                    commissionRate = ft.fixedCommissionRate;
-                } else {
-                    const previousRevenue = ft.previousMonthRevenue || 0;
-                    if (previousRevenue >= 270000) {
-                        commissionRate = 40;
-                    } else if (previousRevenue >= 210000) {
-                        commissionRate = 38;
-                    } else if (previousRevenue >= 150000) {
-                        commissionRate = 36;
-                    } else if (previousRevenue >= 90000) {
-                        commissionRate = 34;
-                    } else if (previousRevenue >= 30000) {
-                        commissionRate = 32;
-                    } else {
-                        commissionRate = 30;
-                    }
-                }
+                const commissionRate = calcCommissionRate(ft);
 
                 let medalIcon = '';
                 if (index === 0) medalIcon = '🥇';
