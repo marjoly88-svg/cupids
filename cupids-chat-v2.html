@@ -1193,7 +1193,9 @@
   }
 
   function displayMessage(messageData) {
-    const isSent = messageData.senderId === currentUser.uid;
+    // ✅ 修正：占い師とお客様を正確に判定
+    const isSent = (currentUser.type === 'client' && messageData.senderId === messageData.clientId) ||
+                   (currentUser.type === 'fortune-teller' && messageData.senderId === messageData.fortuneTellerId);
     const messageType = messageData.messageType || 'paid';
     let bubbleClass = 'message-bubble';
     if (messageType === 'free' || messageType === 'templates') {
