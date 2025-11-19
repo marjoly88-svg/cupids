@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理者ログイン - キューピッズ</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans', sans-serif;
+            background: linear-gradient(135deg, #E967A5 0%, #B565D8 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .login-container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #999;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #666;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e1e1;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #E967A5 0%, #B565D8 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+        }
+
+        .back-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .back-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .back-link a:hover {
+            text-decoration: underline;
+        }
+
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .lock-icon {
+            text-align: center;
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="lock-icon">🔒</div>
+        <h1>管理者ログイン</h1>
+        <p class="subtitle">管理画面にアクセスするには認証が必要です</p>
+        
+        <div class="error" id="errorMsg"></div>
+        
+        <form id="adminLoginForm">
+            <div class="form-group">
+                <label for="adminId">管理者ID</label>
+                <input type="text" id="adminId" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="adminPassword">パスワード</label>
+                <input type="password" id="adminPassword" required>
+            </div>
+            
+            <button type="submit">ログイン</button>
+        </form>
+        
+        <div class="back-link">
+            <a href="index.html">← TOPへ戻る</a>
+        </div>
+    </div>
+
+    <script>
+        // 管理者認証情報（本番環境では環境変数等で管理）
+        const ADMIN_CREDENTIALS = {
+            id: 'cupids_admin',
+            password: 'memetan1031'
+        };
+
+        // Firebase用の管理者アカウント（初回のみ作成が必要）
+        const ADMIN_FIREBASE_ACCOUNT = {
+            email: 'admin@cupids-chat.com',
+            password: 'memetan1031admin'
+        };
+
+        document.getElementById('adminLoginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const adminId = document.getElementById('adminId').value;
+            const adminPassword = document.getElementById('adminPassword').value;
+            const errorMsg = document.getElementById('errorMsg');
+            
+            // 認証チェック
+            if (adminId === ADMIN_CREDENTIALS.id && adminPassword === ADMIN_CREDENTIALS.password) {
+                try {
+                    // Firebase SDKを動的にインポート
+                    const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js');
+                    const { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js');
+                    
+                    const firebaseConfig = {
+                        apiKey: "AIzaSyA52uJ31HzLkbz32lA-3WWSmhM10xYjjCg",
+                        authDomain: "cupids-chat.firebaseapp.com",
+                        projectId: "cupids-chat",
+                        storageBucket: "cupids-chat.firebasestorage.app",
+                        messagingSenderId: "44532110483",
+                        appId: "1:44532110483:web:d6266e8abba8582b8b6966"
+                    };
+                    
+                    const app = initializeApp(firebaseConfig);
+                    const auth = getAuth(app);
+                    
+                    try {
+                        // Firebaseにログイン試行
+                        await signInWithEmailAndPassword(auth, ADMIN_FIREBASE_ACCOUNT.email, ADMIN_FIREBASE_ACCOUNT.password);
+                        console.log('Firebase認証成功');
+                    } catch (firebaseError) {
+                        if (firebaseError.code === 'auth/user-not-found') {
+                            // 初回：管理者アカウントを作成
+                            try {
+                                await createUserWithEmailAndPassword(auth, ADMIN_FIREBASE_ACCOUNT.email, ADMIN_FIREBASE_ACCOUNT.password);
+                                console.log('管理者アカウントを作成しました');
+                            } catch (createError) {
+                                console.error('アカウント作成エラー:', createError);
+                            }
+                        }
+                    }
+                    
+                    // 認証成功
+                    localStorage.setItem('currentUser', JSON.stringify({
+                        uid: 'admin-001',
+                        email: ADMIN_FIREBASE_ACCOUNT.email,
+                        type: 'admin',
+                        name: '管理者',
+                        authenticated: true
+                    }));
+                    
+                    // 管理画面へ遷移
+                    window.location.href = 'admin.html';
+                    
+                } catch (error) {
+                    console.error('Firebase認証エラー:', error);
+                    // Firebaseエラーでも管理画面へ（後方互換性）
+                    localStorage.setItem('currentUser', JSON.stringify({
+                        uid: 'admin-001',
+                        email: 'admin@cupids.com',
+                        type: 'admin',
+                        name: '管理者'
+                    }));
+                    window.location.href = 'admin.html';
+                }
+            } else {
+                // 認証失敗
+                errorMsg.textContent = 'IDまたはパスワードが正しくありません';
+                errorMsg.style.display = 'block';
+                
+                setTimeout(() => {
+                    errorMsg.style.display = 'none';
+                }, 3000);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ログイン - キューピッズ</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans', sans-serif;
+            background: linear-gradient(135deg, #F9FAFB 0%, #E5E7EB 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .login-container {
+            background: white;
+            border-radius: 20px;
+            padding: 0 30px 40px 30px;
+            max-width: 400px;
+            width: 100%;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .logo-container {
+            text-align: center;
+            margin: 0 -30px 20px -30px;
+            padding: 0;
+        }
+
+        .logo {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .page-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #E0E0E0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #E967A5;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .checkbox {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .checkbox-label {
+            font-size: 14px;
+            color: #666;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #E967A5 0%, #B565D8 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 20px;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(233, 103, 165, 0.4);
+        }
+
+        .btn-google {
+            width: 100%;
+            padding: 12px;
+            background: white;
+            color: #333;
+            border: 2px solid #E0E0E0;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .google-icon {
+            width: 20px;
+            height: 20px;
+        }
+
+        .btn-google:hover {
+            background: #F5F5F5;
+            border-color: #CCC;
+        }
+
+        .or-divider {
+            text-align: center;
+            margin: 20px 0;
+            position: relative;
+        }
+
+        .or-divider::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 50%;
+            height: 1px;
+            background: #E0E0E0;
+        }
+
+        .or-text {
+            background: white;
+            padding: 0 15px;
+            position: relative;
+            color: #999;
+            font-size: 13px;
+        }
+
+        .divider {
+            text-align: center;
+            margin: 30px 0;
+            position: relative;
+        }
+
+        .divider::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 50%;
+            height: 1px;
+            background: #E0E0E0;
+        }
+
+        .divider-text {
+            background: white;
+            padding: 0 15px;
+            position: relative;
+            color: #999;
+            font-size: 13px;
+        }
+
+        .fortune-teller-login {
+            text-align: center;
+        }
+
+        .btn-fortune-teller {
+            display: inline-block;
+            padding: 12px 24px;
+            background: white;
+            color: #E967A5;
+            border: 2px solid #E967A5;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: bold;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .btn-fortune-teller:hover {
+            background: #FFF0F5;
+        }
+
+        .register-link {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .register-link a {
+            color: #E967A5;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .register-link a:hover {
+            text-decoration: underline;
+        }
+
+        .back-to-top {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .back-to-top a {
+            color: #999;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .back-to-top a:hover {
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo-container">
+            <img src="https://i.postimg.cc/65MfsbQQ/kyupizzu.png" alt="キューピッズ" class="logo">
+        </div>
+
+        <h1 class="page-title">ログイン</h1>
+
+        <button type="button" class="btn-google" id="googleLoginBtn">
+            <svg class="google-icon" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+            </svg>
+            Googleでログイン
+        </button>
+
+        <div class="or-divider">
+            <span class="or-text">または</span>
+        </div>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label class="form-label">メールアドレス</label>
+                <input type="email" class="form-input" id="email" placeholder="your@email.com" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">パスワード</label>
+                <input type="password" class="form-input" id="password" placeholder="••••••••" required>
+            </div>
+
+            <div class="checkbox-group">
+                <input type="checkbox" class="checkbox" id="rememberMe">
+                <label class="checkbox-label" for="rememberMe">ログイン状態を保持する</label>
+            </div>
+
+            <div style="text-align: right; margin-bottom: 20px;">
+                <a href="#" onclick="alert('パスワードリセット機能は準備中です'); return false;" style="color: #E967A5; text-decoration: none; font-size: 13px;">パスワードをお忘れの方</a>
+            </div>
+
+            <button type="submit" class="btn-primary">ログイン</button>
+        </form>
+
+        <div class="register-link">
+            アカウントをお持ちでない方は
+            <a href="client-register.html">新規登録</a>
+        </div>
+
+        <div class="register-link">
+            パスワードをお忘れの方は
+            <a href="#" onclick="alert('パスワードリセット機能は準備中です'); return false;">パスワード再設定</a>
+        </div>
+
+        <div class="divider">
+            <span class="divider-text">占い師の方はこちら</span>
+        </div>
+
+        <div class="fortune-teller-login">
+            <a href="fortune-login.html" class="btn-fortune-teller">占い師ログイン</a>
+        </div>
+    </div>
+
+    <div class="back-to-top">
+        <a href="index.html">← TOPに戻る</a>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyA52uJ31HzLkbz32lA-3WWSmhM10xYjjCg",
+            authDomain: "cupids-chat.firebaseapp.com",
+            projectId: "cupids-chat",
+            storageBucket: "cupids-chat.firebasestorage.app",
+            messagingSenderId: "44532110483",
+            appId: "1:44532110483:web:d6266e8abba8582b8b6966"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                // Firebase認証
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+
+                // Firestoreからユーザー情報を取得
+                const userRef = doc(db, 'users', user.uid);
+                const userDoc = await getDoc(userRef);
+
+                if (userDoc.exists()) {
+                    const userData = userDoc.data();
+
+                    // お客様のみログイン可
+                    if (userData.type !== 'client') {
+                        alert('お客様用のログインページです。占い師の方は「占い師ログイン」からログインしてください。');
+                        await auth.signOut();
+                        return;
+                    }
+
+                    // ユーザー情報を保存（pointsは除く）
+                    localStorage.setItem('currentUser', JSON.stringify({
+                        uid: user.uid,
+                        email: user.email,
+                        type: userData.type,
+                        name: userData.name
+                    }));
+
+                    // 占い師プロフィールから来た場合は戻る
+                    const returnTo = localStorage.getItem('returnToFortuneTeller');
+                    if (returnTo) {
+                        localStorage.removeItem('returnToFortuneTeller');
+                        window.location.href = `cupids-fortune-profile.html?id=${returnTo}`;
+                    } else {
+                        window.location.href = 'index.html';
+                    }
+
+                } else {
+                    alert('ユーザー情報が見つかりません。');
+                }
+
+            } catch (error) {
+                console.error('ログインエラー:', error);
+                if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
+                    alert('メールアドレスまたはパスワードが正しくありません。');
+                } else {
+                    alert('ログインに失敗しました: ' + error.message);
+                }
+            }
+        });
+
+        // Googleログイン
+        document.getElementById('googleLoginBtn').addEventListener('click', async () => {
+            try {
+                const provider = new GoogleAuthProvider();
+                const result = await signInWithPopup(auth, provider);
+                const user = result.user;
+
+                // Firestoreでユーザー情報を確認・作成
+                const userRef = doc(db, 'users', user.uid);
+                const userDoc = await getDoc(userRef);
+
+                if (userDoc.exists()) {
+                    const userData = userDoc.data();
+                    
+                    // お客様のみログイン可
+                    if (userData.type !== 'client') {
+                        alert('お客様用のログインページです。占い師の方は「占い師ログイン」からログインしてください。');
+                        await auth.signOut();
+                        return;
+                    }
+
+                    // ユーザー情報を保存（pointsは除く）
+                    localStorage.setItem('currentUser', JSON.stringify({
+                        uid: user.uid,
+                        email: user.email,
+                        type: userData.type,
+                        name: userData.name || user.displayName
+                    }));
+
+                } else {
+                    // 新規ユーザーの場合は自動登録
+                    await setDoc(userRef, {
+                        email: user.email,
+                        name: user.displayName || 'ユーザー',
+                        type: 'client',
+                        points: 0, // 初期ポイント
+                        createdAt: serverTimestamp(),
+                        updatedAt: serverTimestamp()
+                    });
+
+                    // ユーザー情報を保存（pointsは除く）
+                    localStorage.setItem('currentUser', JSON.stringify({
+                        uid: user.uid,
+                        email: user.email,
+                        type: 'client',
+                        name: user.displayName || 'ユーザー'
+                    }));
+                }
+
+                // 占い師プロフィールから来た場合は戻る
+                const returnTo = localStorage.getItem('returnToFortuneTeller');
+                if (returnTo) {
+                    localStorage.removeItem('returnToFortuneTeller');
+                    window.location.href = `cupids-fortune-profile.html?id=${returnTo}`;
+                } else {
+                    window.location.href = 'index.html';
+                }
+
+            } catch (error) {
+                console.error('Googleログインエラー:', error);
+                if (error.code === 'auth/popup-closed-by-user') {
+                    // ユーザーがポップアップを閉じた場合は何もしない
+                } else {
+                    alert('Googleログインに失敗しました: ' + error.message);
+                }
+            }
+        });
+    </script>
+</body>
+</html>

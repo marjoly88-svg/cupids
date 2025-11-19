@@ -1,0 +1,48 @@
+{
+  "name": "キューピッズ - 恋愛占いチャット",
+  "short_name": "キューピッズ",
+  "description": "メールチャット形式の恋愛占いサービス",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFFFFF",
+  "theme_color": "#E967A5",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshot1.png",
+      "sizes": "540x720",
+      "type": "image/png"
+    }
+  ],
+  "categories": ["lifestyle", "entertainment"],
+  "shortcuts": [
+    {
+      "name": "マイページ",
+      "short_name": "マイページ",
+      "description": "マイページを開く",
+      "url": "/mypage.html",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "チャット",
+      "short_name": "チャット",
+      "description": "チャットを開く",
+      "url": "/mail-chat.html",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
