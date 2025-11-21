@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>プロフィール編集 - キューピッズ占い師</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans', sans-serif;
+            background: #F5F5F5;
+            min-height: 100vh;
+        }
+
+        /* ヘッダー */
+        .header {
+            background: white;
+            padding: 12px 16px;
+            border-bottom: 1px solid #E0E0E0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .back-button {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .header-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        /* コンテンツ */
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .form-group input[type="text"],
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #E5E7EB;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input[type="text"]:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #EC4899;
+        }
+
+        .form-group textarea {
+            min-height: 150px;
+            resize: vertical;
+        }
+
+        .form-hint {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+            line-height: 1.6;
+        }
+
+        /* ボタン */
+        .save-button {
+            width: 100%;
+            background: linear-gradient(to right, #EC4899, #A855F7);
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .save-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(236, 72, 153, 0.4);
+        }
+
+        .save-button:disabled {
+            background: #D1D5DB;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <!-- ヘッダー -->
+    <div class="header">
+        <button class="back-button" onclick="goBack()">←</button>
+        <div class="header-title">プロフィール編集</div>
+    </div>
+
+    <div class="container">
+        <div id="content">
+            <div class="loading">読み込み中...</div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getFirestore, doc, getDoc, updateDoc, setDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyA52uJ31HzLkbz32lA-3WWSmhM10xYjjCg",
+            authDomain: "cupids-chat.firebaseapp.com",
+            projectId: "cupids-chat",
+            storageBucket: "cupids-chat.firebasestorage.app",
+            messagingSenderId: "44532110483",
+            appId: "1:44532110483:web:d6266e8abba8582b8b6966"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        window.firebaseAuth = auth;
+        window.firebaseDB = db;
+        window.firebaseDoc = doc;
+        window.firebaseGetDoc = getDoc;
+        window.firebaseUpdateDoc = updateDoc;
+        window.firebaseSetDoc = setDoc;
+
+        window.firebaseReady = true;
+        window.dispatchEvent(new Event('firebaseReady'));
+        console.log('✅ Firebase初期化完了!');
+    </script>
+
+    <script>
+        // ログインチェック
+        let currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+        
+        // テスト用：占い師でログインしていない場合はダミーユーザー
+        if (!currentUser || currentUser.type !== 'fortune-teller') {
+            currentUser = {
+                uid: 'test-fortune-001',
+                name: '七水南',
+                email: 'fortune@test.com',
+                type: 'fortune-teller'
+            };
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        }
+
+        let fortuneTellerData = {};
+
+        // プロフィールを読み込み
+        async function loadProfile() {
+            try {
+                console.log('プロフィール読み込み開始...');
+                const ftRef = window.firebaseDoc(window.firebaseDB, 'fortuneTellers', currentUser.uid);
+                const ftDoc = await window.firebaseGetDoc(ftRef);
+
+                if (ftDoc.exists()) {
+                    fortuneTellerData = ftDoc.data();
+                    console.log('プロフィールデータ取得:', fortuneTellerData);
+                } else {
+                    console.log('プロフィールデータなし、デフォルト値使用');
+                    fortuneTellerData = {
+                        name: currentUser.name || '',
+                        profileMessage: '',
+                        specialty: '',
+                        photoURL: ''
+                    };
+                }
+
+                displayForm();
+            } catch (error) {
+                console.error('プロフィール読み込みエラー:', error);
+                document.getElementById('content').innerHTML = 
+                    '<div class="loading">データの読み込みに失敗しました<br><small>' + error.message + '</small></div>';
+            }
+        }
+
+        // フォームを表示
+        function displayForm() {
+            console.log('フォーム表示');
+            const html = `
+                <div class="section">
+                    <div class="section-title">プロフィールメッセージ</div>
+                    
+                    <div class="form-group">
+                        <label>自己紹介文 *</label>
+                        <textarea id="profileMessageInput" placeholder="お客様に向けた自己紹介を書いてください...
+
+例：
+はじめまして、○○と申します。
+タロットカードを使って、恋愛・仕事・人間関係などのお悩みに寄り添います。
+あなたの心に寄り添い、前向きな未来へのヒントをお届けします✨">${fortuneTellerData.profileMessage || ''}</textarea>
+                        <div class="form-hint">
+                            💡 お客様に表示されるプロフィール文章です<br>
+                            💡 あなたの占いスタイルや得意分野を説明してください<br>
+                            💡 文字数制限はありません
+                        </div>
+                    </div>
+                </div>
+
+                <button class="save-button" onclick="saveProfile()">💾 保存する</button>
+            `;
+
+            document.getElementById('content').innerHTML = html;
+        }
+
+        // プロフィールを保存
+        async function saveProfile() {
+            const profileMessage = document.getElementById('profileMessageInput').value.trim();
+
+            if (!profileMessage) {
+                alert('自己紹介文を入力してください');
+                return;
+            }
+
+            const saveButton = document.querySelector('.save-button');
+            saveButton.disabled = true;
+            saveButton.textContent = '保存中...';
+
+            try {
+                const ftRef = window.firebaseDoc(window.firebaseDB, 'fortuneTellers', currentUser.uid);
+                
+                await window.firebaseSetDoc(ftRef, {
+                    profileMessage: profileMessage,
+                    name: currentUser.name
+                }, { merge: true });
+
+                alert('✅ プロフィールを保存しました！');
+                window.location.href = 'fortune-lobby.html';
+
+            } catch (error) {
+                console.error('保存エラー:', error);
+                alert('保存に失敗しました: ' + error.message);
+                saveButton.disabled = false;
+                saveButton.textContent = '💾 保存する';
+            }
+        }
+
+        function goBack() {
+            window.location.href = 'fortune-lobby.html';
+        }
+
+        // Firebase初期化を待ってから実行
+        async function initializePage() {
+            if (!window.firebaseReady) {
+                console.log('Firebase初期化待機中...');
+                window.addEventListener('firebaseReady', initializePage, { once: true });
+                return;
+            }
+            
+            console.log('ページ初期化開始');
+            await loadProfile();
+        }
+
+        // ページ読み込み完了後に初期化
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializePage);
+        } else {
+            initializePage();
+        }
+
+        window.saveProfile = saveProfile;
+        window.goBack = goBack;
+    </script>
+</body>
+</html>
