@@ -14,12 +14,11 @@
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans', sans-serif;
             background: #F0F0F0;
-            height: 100vh;
-            overflow: hidden;
+            color: #333;
         }
 
-        .container {
-            max-width: 600px;
+        .page {
+            max-width: 480px;
             margin: 0 auto;
             height: 100vh;
             display: flex;
@@ -40,267 +39,347 @@
         .header-left {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
         }
 
         .back-button {
-            background: rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.15);
             border: none;
+            border-radius: 999px;
+            padding: 6px 10px;
             color: white;
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            font-size: 18px;
-            cursor: pointer;
+            font-size: 12px;
             display: flex;
             align-items: center;
-            justify-content: center;
+            gap: 4px;
+            cursor: pointer;
         }
 
-        .fortune-name {
+        .header-title {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .header-subtitle {
+            font-size: 11px;
+            opacity: 0.9;
+        }
+
+        .header-right {
+            text-align: right;
+        }
+
+        .header-points {
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .header-points span {
             font-size: 16px;
-            font-weight: bold;
+        }
+
+        .header-points button {
+            margin-top: 3px;
+            padding: 3px 7px;
+            font-size: 11px;
+            border-radius: 999px;
+            border: 1px solid rgba(255,255,255,0.7);
+            background: rgba(255,255,255,0.15);
+            color: white;
+            cursor: pointer;
+        }
+
+        /* ステータスバナー */
+        .status-banner {
+            background: #FFF7FA;
+            border-bottom: 1px solid #FDE0EC;
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
         }
 
         .status-badge {
-            background: rgba(255,255,255,0.2);
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 12px;
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: #EC4899;
+            color: white;
+            font-weight: 600;
+        }
+
+        .status-text {
+            color: #7C3A6A;
+        }
+
+        /* 完了バナー */
+        .completed-banner {
+            display: none;
+            background: #ECFEFF;
+            border-bottom: 1px solid #BAE6FD;
+            padding: 8px 12px;
+            font-size: 11px;
+            color: #0369A1;
+        }
+
+        /* メインエリア */
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .info-banner {
+            padding: 8px 12px;
+            font-size: 11px;
+            color: #6B7280;
+            background: #F9FAFB;
+            border-bottom: 1px solid #E5E7EB;
         }
 
         /* チャットエリア */
         .chat-area {
             flex: 1;
+            padding: 12px;
             overflow-y: auto;
-            padding: 20px;
-            background: #FAFAFA;
+            background: #F3F4F6;
         }
 
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: #999;
-        }
-
-        .empty-state-icon {
-            font-size: 48px;
-            margin-bottom: 15px;
-        }
-
-        /* メッセージ */
         .message {
+            margin-bottom: 10px;
             display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            animation: fadeIn 0.3s;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
         }
 
         .message.client {
-            flex-direction: row-reverse;
-        }
-
-        .message-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #E967A5, #B565D8);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            flex-shrink: 0;
-        }
-
-        .message.client .message-avatar {
-            background: linear-gradient(135deg, #4A90E2, #7B68EE);
+            justify-content: flex-end;
         }
 
         .message-content {
-            max-width: 70%;
-        }
-
-        .message-bubble {
-            background: white;
-            padding: 12px 16px;
-            border-radius: 18px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            word-wrap: break-word;
+            max-width: 80%;
+            padding: 8px 10px;
+            border-radius: 12px;
+            font-size: 13px;
             line-height: 1.5;
+            position: relative;
         }
 
-        .message.client .message-bubble {
-            background: linear-gradient(135deg, #E967A5, #B565D8);
+        .message.client .message-content {
+            background: #EC4899;
             color: white;
+            border-bottom-right-radius: 3px;
         }
 
-        .message-time {
+        .message.fortune-teller .message-content {
+            background: white;
+            border-bottom-left-radius: 3px;
+        }
+
+        .message-meta {
+            font-size: 10px;
+            color: #9CA3AF;
+            margin-top: 2px;
+        }
+
+        .message.client .message-meta {
+            text-align: right;
+        }
+
+        .system-message {
+            text-align: center;
             font-size: 11px;
-            color: #999;
-            margin-top: 4px;
-            padding: 0 8px;
+            color: #9CA3AF;
+            margin: 8px 0;
         }
 
         /* 入力エリア */
         .input-area {
-            padding: 15px;
+            border-top: 1px solid #E5E7EB;
+            padding: 8px 10px 10px;
             background: white;
-            border-top: 1px solid #E0E0E0;
         }
 
         .input-area.disabled {
-            background: #F5F5F5;
+            opacity: 0.7;
         }
 
-        .input-wrapper {
+        .input-label {
+            font-size: 11px;
+            color: #6B7280;
+            margin-bottom: 4px;
             display: flex;
-            gap: 10px;
-            align-items: flex-end;
+            justify-content: space-between;
+            align-items: center;
         }
 
-        .input-box {
-            flex: 1;
+        .char-count {
+            font-size: 11px;
+        }
+
+        .char-count span {
+            font-weight: 600;
+        }
+
+        .char-count.over span {
+            color: #EF4444;
+        }
+
+        .textarea-wrapper {
+            position: relative;
+            margin-bottom: 6px;
         }
 
         textarea {
             width: 100%;
-            padding: 12px;
-            border: 2px solid #E0E0E0;
-            border-radius: 12px;
-            font-size: 14px;
-            font-family: inherit;
-            resize: none;
+            min-height: 80px;
+            max-height: 120px;
+            padding: 8px;
+            font-size: 13px;
+            border-radius: 8px;
+            border: 1px solid #D1D5DB;
+            resize: vertical;
             outline: none;
-            transition: border-color 0.2s;
         }
 
         textarea:focus {
-            border-color: #E967A5;
+            border-color: #EC4899;
+            box-shadow: 0 0 0 1px rgba(236, 72, 153, 0.1);
         }
 
         textarea:disabled {
-            background: #F5F5F5;
-            color: #999;
+            background: #F9FAFB;
+            cursor: not-allowed;
         }
 
-        .char-count {
-            text-align: right;
-            font-size: 12px;
-            color: #999;
-            margin-top: 5px;
-        }
-
-        .char-count.over {
-            color: #FF4444;
+        .send-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
         }
 
         .send-button {
-            width: 50px;
-            height: 50px;
+            flex: 1;
+            padding: 8px 10px;
+            border-radius: 999px;
             border: none;
-            border-radius: 50%;
-            background-image: url('https://i.postimg.cc/G23L75nL/kyupizzu_896_x_1600_px.png');
-            background-size: cover;
-            background-position: center;
-            color: transparent;
-            font-size: 0;
+            background: linear-gradient(135deg, #EC4899 0%, #D946EF 100%);
+            color: white;
+            font-weight: 600;
+            font-size: 13px;
             cursor: pointer;
-            transition: transform 0.2s;
-            flex-shrink: 0;
-        }
-
-        .send-button:hover:not(:disabled) {
-            transform: scale(1.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            box-shadow: 0 6px 12px rgba(236, 72, 153, 0.35);
         }
 
         .send-button:disabled {
-            opacity: 0.5;
+            background: #E5E7EB;
+            color: #9CA3AF;
+            box-shadow: none;
             cursor: not-allowed;
-            filter: grayscale(100%);
         }
 
-        .info-banner {
-            background: #FFF3CD;
-            padding: 10px 15px;
-            border-bottom: 1px solid #FFE69C;
+        .note-text {
+            font-size: 10px;
+            color: #9CA3AF;
+            margin-top: 2px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 30px 10px;
+            color: #9CA3AF;
             font-size: 13px;
-            color: #856404;
-            text-align: center;
         }
 
-        .completed-banner {
-            background: #D4EDDA;
-            padding: 15px;
-            border-bottom: 1px solid #C3E6CB;
-            font-size: 14px;
-            color: #155724;
-            text-align: center;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #999;
+        .empty-state-icon {
+            font-size: 30px;
+            margin-bottom: 8px;
         }
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="page">
         <!-- ヘッダー -->
-        <div class="header">
+        <header class="header">
             <div class="header-left">
-                <button class="back-button" onclick="goBack()">←</button>
-                <div class="fortune-name" id="fortuneName">占い師</div>
-            </div>
-            <div class="status-badge" id="statusBadge">鑑定中</div>
-        </div>
-
-        <!-- 情報バナー -->
-        <div class="info-banner" id="infoBanner">
-            100文字以内で質問できます（500pt消費）
-        </div>
-
-        <!-- 完了バナー（非表示） -->
-        <div class="completed-banner" id="completedBanner" style="display: none;">
-            ✅ 鑑定が完了しました。続けて相談したい場合は、新規でお申し込みください。
-        </div>
-
-        <!-- チャットエリア -->
-        <div class="chat-area" id="chatArea">
-            <div class="loading">読み込み中...</div>
-        </div>
-
-        <!-- 入力エリア -->
-        <div class="input-area" id="inputArea">
-            <div class="input-wrapper">
-                <div class="input-box">
-                    <textarea 
-                        id="messageInput" 
-                        rows="3" 
-                        placeholder="100文字以内で質問を入力してください"
-                        maxlength="100"
-                    ></textarea>
-                    <div class="char-count">
-                        <span id="charCount">0</span>/100文字
-                    </div>
-                </div>
-                <button class="send-button" id="sendButton" disabled>
-                    <span id="sendButtonText">📤</span>
+                <button class="back-button" onclick="history.back()">
+                    ← 戻る
                 </button>
+                <div>
+                    <div class="header-title" id="fortuneName">占い師</div>
+                    <div class="header-subtitle">メールチャット相談</div>
+                </div>
             </div>
+            <div class="header-right">
+                <div class="header-points">
+                    所持ポイント<br>
+                    <span id="userPoints">0</span> pt
+                </div>
+                <button onclick="window.location.href='purchase.html'">ポイント購入</button>
+            </div>
+        </header>
+
+        <!-- ステータス -->
+        <div class="status-banner">
+            <div class="status-badge" id="statusBadge">読み込み中</div>
+            <div class="status-text" id="statusText">ステータスを読み込み中です...</div>
         </div>
+
+        <!-- 完了バナー -->
+        <div class="completed-banner" id="completedBanner">
+            この鑑定は終了しています。新しく鑑定を申し込む場合はトップページから再度お選びください。
+        </div>
+
+        <!-- メインコンテンツ -->
+        <main class="main">
+            <div class="info-banner" id="infoBanner">
+                100文字以内でご相談内容を入力してください。
+            </div>
+
+            <!-- チャット表示エリア -->
+            <div class="chat-area" id="chatArea">
+                <div class="empty-state">
+                    <div class="empty-state-icon">💌</div>
+                    <div>メッセージ履歴を読み込んでいます...</div>
+                </div>
+            </div>
+
+            <!-- 入力エリア -->
+            <div class="input-area" id="inputArea">
+                <div class="input-label">
+                    <span>ご相談内容</span>
+                    <span class="char-count" id="charCountWrapper">
+                        <span id="charCount">0</span>/100
+                    </span>
+                </div>
+                <div class="textarea-wrapper">
+                    <textarea id="messageInput" maxlength="100" placeholder="100文字以内でご相談内容を入力してください"></textarea>
+                </div>
+                <div class="send-row">
+                    <button class="send-button" id="sendButton" disabled>
+                        <span id="sendButtonText">送信</span>
+                    </button>
+                </div>
+                <div class="note-text">
+                    ※ 1往復（あなたのメッセージ＋占い師からの返信）ごとにポイントが消費されます。
+                </div>
+            </div>
+        </main>
     </div>
 
     <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getFirestore, collection, query, where, getDocs, doc, getDoc, addDoc, updateDoc, setDoc, onSnapshot, orderBy, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { getAuth } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { 
+            getFirestore, doc, getDoc, collection, query, where, getDocs, addDoc, updateDoc, setDoc,
+            onSnapshot, orderBy, serverTimestamp
+        } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
         const firebaseConfig = {
             apiKey: "AIzaSyA52uJ31HzLkbz32lA-3WWSmhM10xYjjCg",
@@ -312,9 +391,11 @@
         };
 
         const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
         const db = getFirestore(app);
 
         window.firebaseDB = db;
+        window.firebaseAuth = auth;
         window.firebaseCollection = collection;
         window.firebaseQuery = query;
         window.firebaseWhere = where;
@@ -334,11 +415,11 @@
     </script>
 
     <script>
-        // ログインチェック
+        // ログインユーザーの取得（簡易版）
         let currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
         
+        // テスト用ダミーユーザー
         if (!currentUser || currentUser.type !== 'client') {
-            // テスト用ダミーユーザー
             currentUser = {
                 uid: 'test-client-001',
                 name: 'テストユーザー',
@@ -360,7 +441,6 @@
 
         let conversationData = null;
         let fortuneTellerData = null;
-        let hasClientSent = false;
         let currentPrice = 500;  // 現在の料金
         let isFirstTime = false;  // 初回かどうか
         let deviceId = localStorage.getItem('deviceId') || generateDeviceId();
@@ -399,23 +479,22 @@
                 );
                 const initialOfferDoc = await window.firebaseGetDoc(initialOfferRef);
 
-                if (!initialOfferDoc.exists()) {
-                    // 初回！
-                    currentPrice = initialPrice;
-                    isFirstTime = true;
-                } else {
-                    // 2回目以降
+                if (initialOfferDoc.exists()) {
+                    // すでに初回利用済み → 通常料金
                     currentPrice = regularPrice;
                     isFirstTime = false;
+                } else {
+                    // 初回利用 → 初回料金
+                    currentPrice = initialPrice;
+                    isFirstTime = true;
                 }
 
                 updateSendButton();
-
             } catch (error) {
                 console.error('料金チェックエラー:', error);
-                // エラー時はデフォルト値
+                // エラー時はデフォルト料金
                 currentPrice = 500;
-                isFirstTime = false;
+                isFirstTime = true;
                 updateSendButton();
             }
         }
@@ -454,9 +533,16 @@
                 }
 
                 conversationData = convDoc.data();
-                hasClientSent = conversationData.clientHasSent || false;
 
                 console.log('会話データ取得成功:', conversationData);
+                // 会話ドキュメントをリアルタイム監視（フラグ更新用）
+                window.firebaseOnSnapshot(convRef, (snapshot) => {
+                    if (!snapshot.exists()) return;
+                    conversationData = snapshot.data();
+                    console.log('会話データ更新:', conversationData);
+                    updateUIByStatus();
+                });
+
 
                 // 占い師情報を取得
                 const ftRef = window.firebaseDoc(window.firebaseDB, 'fortuneTellers', conversationData.fortuneTellerId);
@@ -487,7 +573,9 @@
 
         // ステータスによるUI更新
         function updateUIByStatus() {
-            const status = conversationData.status;
+            if (!conversationData) return;
+            
+            const status = conversationData.status || 'open';
             const statusBadge = document.getElementById('statusBadge');
             const infoBanner = document.getElementById('infoBanner');
             const completedBanner = document.getElementById('completedBanner');
@@ -495,28 +583,51 @@
             const messageInput = document.getElementById('messageInput');
             const sendButton = document.getElementById('sendButton');
 
-            if (status === 'answered') {
-                // 鑑定完了
-                statusBadge.textContent = '鑑定完了';
-                statusBadge.style.background = 'rgba(76, 175, 80, 0.3)';
-                infoBanner.style.display = 'none';
+            const clientHasSent = !!conversationData.clientHasSent;
+            const fortuneTellerHasSent = !!conversationData.fortuneTellerHasSent;
+
+            // デフォルトは非表示
+            completedBanner.style.display = 'none';
+
+            // 明示的に「クローズ」された会話がある場合だけ完全ロック
+            if (status === 'closed') {
+                statusBadge.textContent = '鑑定終了';
+                infoBanner.innerHTML = 'この鑑定は終了しています。これ以上メッセージを送ることはできません。';
                 completedBanner.style.display = 'block';
                 inputArea.classList.add('disabled');
                 messageInput.disabled = true;
                 messageInput.placeholder = 'この鑑定は終了しました';
                 sendButton.disabled = true;
-            } else if (hasClientSent) {
-                // お客様送信済み、占い師の返信待ち
+                return;
+            }
+
+            // 送信可能かどうか判定
+            // ・まだ1度も送っていない（false / false）
+            // ・1往復完了後（true / true）→ 次の1往復スタート可能
+            const canSend =
+                (!clientHasSent && !fortuneTellerHasSent) ||
+                (clientHasSent && fortuneTellerHasSent);
+
+            if (canSend) {
+                statusBadge.textContent = '質問受付中';
+                if (isFirstTime) {
+                    infoBanner.innerHTML = `100文字以内で質問できます（初回 ${currentPrice}円 / 1往復）`;
+                } else {
+                    infoBanner.innerHTML = `100文字以内で質問できます（1往復 ${currentPrice}円）`;
+                }
+                inputArea.classList.remove('disabled');
+                messageInput.disabled = false;
+                messageInput.placeholder = '100文字以内でご相談内容を入力してください';
+                const length = messageInput.value.trim().length;
+                sendButton.disabled = length === 0 || length > 100;
+            } else {
+                // お客様送信済みで、占い師の返信待ち
                 statusBadge.textContent = '返信待ち';
-                infoBanner.innerHTML = '占い師からの返信をお待ちください（24時間以内に返信します）';
+                infoBanner.innerHTML = '占い師からの返信をお待ちください（返信後に次の1往復を購入できます）';
                 inputArea.classList.add('disabled');
                 messageInput.disabled = true;
-                messageInput.placeholder = '返信をお待ちください';
+                messageInput.placeholder = '占い師からの返信をお待ちください';
                 sendButton.disabled = true;
-            } else {
-                // お客様がまだ送信していない
-                statusBadge.textContent = '質問受付中';
-                infoBanner.innerHTML = '100文字以内で質問できます（500pt消費）';
             }
         }
 
@@ -538,7 +649,7 @@
                             <div class="empty-state-icon">💌</div>
                             <div>
                                 100文字以内でメッセージを送信できます<br>
-                                1回の送信で500pt消費します
+                                1往復ごとに${currentPrice}pt消費します
                             </div>
                         </div>
                     `;
@@ -549,38 +660,45 @@
                 
                 snapshot.forEach(doc => {
                     const msg = doc.data();
-                    renderMessage(msg);
+                    const isClient = msg.senderId === currentUser.uid;
+                    
+                    const div = document.createElement('div');
+                    div.className = 'message ' + (isClient ? 'client' : 'fortune-teller');
+                    
+                    const createdAt = msg.createdAt && msg.createdAt.toDate 
+                        ? msg.createdAt.toDate() 
+                        : msg.createdAt instanceof Date 
+                            ? msg.createdAt 
+                            : null;
+                    const timeStr = createdAt 
+                        ? createdAt.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) 
+                        : '';
+
+                    const text = escapeHtml(msg.text || '');
+                    div.innerHTML = `
+                        <div>
+                            <div class="message-content">
+                                ${text.replace(/\n/g, '<br>')}
+                            </div>
+                            <div class="message-meta">
+                                ${timeStr}
+                            </div>
+                        </div>
+                    `;
+                    
+                    chatArea.appendChild(div);
                 });
 
+                // 一番下までスクロール
                 chatArea.scrollTop = chatArea.scrollHeight;
             });
         }
 
-        // メッセージを表示
-        function renderMessage(msg) {
-            const chatArea = document.getElementById('chatArea');
-            const isClient = msg.senderId === currentUser.uid;
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${isClient ? 'client' : 'fortune'}`;
-            
-            const avatar = isClient ? (currentUser.name ? currentUser.name.charAt(0) : 'あ') : (fortuneTellerData?.name ? fortuneTellerData.name.charAt(0) : '占');
-            const time = msg.createdAt ? new Date(msg.createdAt.toMillis()).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) : '';
-
-            messageDiv.innerHTML = `
-                <div class="message-avatar">${avatar}</div>
-                <div class="message-content">
-                    <div class="message-bubble">${escapeHtml(msg.text)}</div>
-                    <div class="message-time">${time}</div>
-                </div>
-            `;
-
-            chatArea.appendChild(messageDiv);
-        }
-
         // HTMLエスケープ
-        function escapeHtml(text) {
+        function escapeHtml(str) {
+            if (!str) return '';
             const div = document.createElement('div');
-            div.textContent = text;
+            div.textContent = str;
             return div.innerHTML;
         }
 
@@ -599,7 +717,7 @@
                 charCount.parentElement.classList.remove('over');
             }
 
-            sendButton.disabled = length === 0 || length > 100 || hasClientSent;
+            updateUIByStatus();
         });
 
         // メッセージ送信
@@ -611,10 +729,29 @@
                 return;
             }
 
-            if (hasClientSent) {
-                alert('すでに質問を送信済みです');
+            if (!conversationData) {
+                alert('会話情報を取得しています。少し待ってからお試しください。');
                 return;
             }
+
+            const clientHasSent = !!conversationData.clientHasSent;
+            const fortuneTellerHasSent = !!conversationData.fortuneTellerHasSent;
+            const status = conversationData.status || 'open';
+
+            if (status === 'closed') {
+                alert('この鑑定は終了しています。新しくお申し込みください。');
+                return;
+            }
+
+            const canSend =
+                (!clientHasSent && !fortuneTellerHasSent) ||
+                (clientHasSent && fortuneTellerHasSent);
+
+            if (!canSend) {
+                alert('現在は占い師からの返信待ちです。返信が届いてから次のメッセージを送信できます。');
+                return;
+            }
+
 
             // ポイントチェック（動的料金）
             if (currentUser.points < currentPrice) {
@@ -643,6 +780,7 @@
                 const convRef = window.firebaseDoc(window.firebaseDB, 'conversations', conversationId);
                 await window.firebaseUpdateDoc(convRef, {
                     clientHasSent: true,
+                    fortuneTellerHasSent: false,
                     lastMessage: text.substring(0, 50),
                     lastMessageAt: window.firebaseServerTimestamp()
                 });
@@ -670,50 +808,32 @@
                 }
 
                 // UIを更新
-                hasClientSent = true;
-                conversationData.clientHasSent = true;
+                conversationData.clientHasSent = true; conversationData.fortuneTellerHasSent = false;
                 updateUIByStatus();
 
                 // 入力欄をクリア
                 messageInput.value = '';
                 charCount.textContent = '0';
 
+                // 所持ポイント表示を更新
+                document.getElementById('userPoints').textContent = currentUser.points;
+
+                alert('メッセージを送信しました。占い師からの返信をお待ちください。');
+
             } catch (error) {
                 console.error('送信エラー:', error);
-                alert('送信に失敗しました');
-                sendButton.disabled = false;
+                alert('メッセージの送信に失敗しました。時間をおいて再度お試しください。');
+            } finally {
                 messageInput.disabled = false;
+                updateUIByStatus();
             }
         });
 
-        function goBack() {
-            // 占い師IDを取得
-            const fortuneTellerId = localStorage.getItem('selectedFortuneTellerId');
-            
-            if (fortuneTellerId) {
-                // 占い師プロフィールに戻る
-                window.location.href = `fortune-profile.html?id=${fortuneTellerId}`;
-            } else {
-                // IDがない場合はマイページに戻る
-                window.location.href = 'mypage.html';
-            }
-        }
-
-        // 初期化実行
-        console.log('🔷 mail-chat.html 読み込み完了');
-        console.log('🔷 conversationId:', conversationId);
-        console.log('🔷 firebaseReady:', window.firebaseReady);
-        
-        if (window.firebaseReady) {
-            console.log('🔷 Firebase既に初期化済み - init()を実行');
+        // ページ読み込み時
+        window.addEventListener('firebaseReady', () => {
+            document.getElementById('userPoints').textContent = currentUser.points || 0;
             init();
-        } else {
-            console.log('🔷 Firebaseイベント待機中...');
-            window.addEventListener('firebaseReady', () => {
-                console.log('🔷 firebaseReadyイベント受信 - init()を実行');
-                init();
-            });
-        }
+        });
     </script>
 </body>
 </html>
