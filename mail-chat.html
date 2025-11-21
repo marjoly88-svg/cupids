@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>メールチャット - キューピッズ</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans', sans-serif;
+            background: #F0F0F0;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: white;
+        }
+
+        /* ヘッダー */
+        .header {
+            background: linear-gradient(135deg, #E967A5 0%, #B565D8 100%);
+            color: white;
+            padding: 12px 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .back-button {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .fortune-name {
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .status-badge {
+            background: rgba(255,255,255,0.2);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+
+        /* チャットエリア */
+        .chat-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #FAFAFA;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        /* メッセージ */
+        .message {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.client {
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #E967A5, #B565D8);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .message.client .message-avatar {
+            background: linear-gradient(135deg, #4A90E2, #7B68EE);
+        }
+
+        .message-content {
+            max-width: 70%;
+        }
+
+        .message-bubble {
+            background: white;
+            padding: 12px 16px;
+            border-radius: 18px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            word-wrap: break-word;
+            line-height: 1.5;
+        }
+
+        .message.client .message-bubble {
+            background: linear-gradient(135deg, #E967A5, #B565D8);
+            color: white;
+        }
+
+        .message-time {
+            font-size: 11px;
+            color: #999;
+            margin-top: 4px;
+            padding: 0 8px;
+        }
+
+        /* 入力エリア */
+        .input-area {
+            padding: 15px;
+            background: white;
+            border-top: 1px solid #E0E0E0;
+        }
+
+        .input-area.disabled {
+            background: #F5F5F5;
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+
+        .input-box {
+            flex: 1;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #E0E0E0;
+            border-radius: 12px;
+            font-size: 14px;
+            font-family: inherit;
+            resize: none;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        textarea:focus {
+            border-color: #E967A5;
+        }
+
+        textarea:disabled {
+            background: #F5F5F5;
+            color: #999;
+        }
+
+        .char-count {
+            text-align: right;
+            font-size: 12px;
+            color: #999;
+            margin-top: 5px;
+        }
+
+        .char-count.over {
+            color: #FF4444;
+        }
+
+        .send-button {
+            width: 50px;
+            height: 50px;
+            border: none;
+            border-radius: 50%;
+            background-image: url('https://i.postimg.cc/G23L75nL/kyupizzu_896_x_1600_px.png');
+            background-size: cover;
+            background-position: center;
+            color: transparent;
+            font-size: 0;
+            cursor: pointer;
+            transition: transform 0.2s;
+            flex-shrink: 0;
+        }
+
+        .send-button:hover:not(:disabled) {
+            transform: scale(1.05);
+        }
+
+        .send-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            filter: grayscale(100%);
+        }
+
+        .info-banner {
+            background: #FFF3CD;
+            padding: 10px 15px;
+            border-bottom: 1px solid #FFE69C;
+            font-size: 13px;
+            color: #856404;
+            text-align: center;
+        }
+
+        .completed-banner {
+            background: #D4EDDA;
+            padding: 15px;
+            border-bottom: 1px solid #C3E6CB;
+            font-size: 14px;
+            color: #155724;
+            text-align: center;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- ヘッダー -->
+        <div class="header">
+            <div class="header-left">
+                <button class="back-button" onclick="goBack()">←</button>
+                <div class="fortune-name" id="fortuneName">占い師</div>
+            </div>
+            <div class="status-badge" id="statusBadge">鑑定中</div>
+        </div>
+
+        <!-- 情報バナー -->
+        <div class="info-banner" id="infoBanner">
+            100文字以内で質問できます（500pt消費）
+        </div>
+
+        <!-- 完了バナー（非表示） -->
+        <div class="completed-banner" id="completedBanner" style="display: none;">
+            ✅ 鑑定が完了しました。続けて相談したい場合は、新規でお申し込みください。
+        </div>
+
+        <!-- チャットエリア -->
+        <div class="chat-area" id="chatArea">
+            <div class="loading">読み込み中...</div>
+        </div>
+
+        <!-- 入力エリア -->
+        <div class="input-area" id="inputArea">
+            <div class="input-wrapper">
+                <div class="input-box">
+                    <textarea 
+                        id="messageInput" 
+                        rows="3" 
+                        placeholder="100文字以内で質問を入力してください"
+                        maxlength="100"
+                    ></textarea>
+                    <div class="char-count">
+                        <span id="charCount">0</span>/100文字
+                    </div>
+                </div>
+                <button class="send-button" id="sendButton" disabled>
+                    <span id="sendButtonText">📤</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getFirestore, collection, query, where, getDocs, doc, getDoc, addDoc, updateDoc, setDoc, onSnapshot, orderBy, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyA52uJ31HzLkbz32lA-3WWSmhM10xYjjCg",
+            authDomain: "cupids-chat.firebaseapp.com",
+            projectId: "cupids-chat",
+            storageBucket: "cupids-chat.firebasestorage.app",
+            messagingSenderId: "44532110483",
+            appId: "1:44532110483:web:d6266e8abba8582b8b6966"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        window.firebaseDB = db;
+        window.firebaseCollection = collection;
+        window.firebaseQuery = query;
+        window.firebaseWhere = where;
+        window.firebaseGetDocs = getDocs;
+        window.firebaseDoc = doc;
+        window.firebaseGetDoc = getDoc;
+        window.firebaseAddDoc = addDoc;
+        window.firebaseUpdateDoc = updateDoc;
+        window.firebaseSetDoc = setDoc;
+        window.firebaseOnSnapshot = onSnapshot;
+        window.firebaseOrderBy = orderBy;
+        window.firebaseServerTimestamp = serverTimestamp;
+        
+        window.firebaseReady = true;
+        window.dispatchEvent(new Event('firebaseReady'));
+        console.log('✅ Firebase初期化完了 - firebaseReadyイベント発火');
+    </script>
+
+    <script>
+        // ログインチェック
+        let currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+        
+        if (!currentUser || currentUser.type !== 'client') {
+            // テスト用ダミーユーザー
+            currentUser = {
+                uid: 'test-client-001',
+                name: 'テストユーザー',
+                email: 'client@test.com',
+                type: 'client',
+                points: 5000
+            };
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        }
+
+        // URLパラメータから会話IDを取得
+        const urlParams = new URLSearchParams(window.location.search);
+        const conversationId = urlParams.get('conversationId') || urlParams.get('id') || localStorage.getItem('selectedConversationId');
+
+        if (!conversationId) {
+            alert('会話が見つかりません');
+            window.location.href = 'index.html';
+        }
+
+        let conversationData = null;
+        let fortuneTellerData = null;
+        let hasClientSent = false;
+        let currentPrice = 500;  // 現在の料金
+        let isFirstTime = false;  // 初回かどうか
+        let deviceId = localStorage.getItem('deviceId') || generateDeviceId();
+
+        // デバイスID生成
+        function generateDeviceId() {
+            const id = 'device_' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
+            localStorage.setItem('deviceId', id);
+            return id;
+        }
+
+        // 初回チェック＆料金計算
+        async function checkInitialOffer(fortuneTellerId) {
+            try {
+                // 1. 占い師の料金情報を取得
+                const ftRef = window.firebaseDoc(window.firebaseDB, 'fortuneTellers', fortuneTellerId);
+                const ftDoc = await window.firebaseGetDoc(ftRef);
+                
+                if (!ftDoc.exists()) {
+                    // データがない場合はデフォルト値
+                    currentPrice = 500;
+                    isFirstTime = true;
+                    updateSendButton();
+                    return;
+                }
+
+                const ftData = ftDoc.data();
+                const initialPrice = ftData.initialPrice || 500;  // 初回料金
+                const regularPrice = ftData.regularPrice || 1000; // 2回目以降の料金
+
+                // 2. 初回フラグをチェック
+                const initialOfferRef = window.firebaseDoc(
+                    window.firebaseDB, 
+                    `clients/${currentUser.uid}/initialOffers`, 
+                    fortuneTellerId
+                );
+                const initialOfferDoc = await window.firebaseGetDoc(initialOfferRef);
+
+                if (!initialOfferDoc.exists()) {
+                    // 初回！
+                    currentPrice = initialPrice;
+                    isFirstTime = true;
+                } else {
+                    // 2回目以降
+                    currentPrice = regularPrice;
+                    isFirstTime = false;
+                }
+
+                updateSendButton();
+
+            } catch (error) {
+                console.error('料金チェックエラー:', error);
+                // エラー時はデフォルト値
+                currentPrice = 500;
+                isFirstTime = false;
+                updateSendButton();
+            }
+        }
+
+        // 送信ボタンのテキスト更新
+        function updateSendButton() {
+            const buttonText = document.getElementById('sendButtonText');
+            if (isFirstTime) {
+                buttonText.textContent = `💗 初回${currentPrice}円`;
+            } else {
+                buttonText.textContent = `${currentPrice}円で送信`;
+            }
+        }
+
+        // 初期化
+        async function init() {
+            try {
+                // Firebase初期化チェック
+                if (!window.firebaseDB || !window.firebaseDoc || !window.firebaseGetDoc) {
+                    throw new Error('Firebaseが初期化されていません');
+                }
+
+                // conversationIdチェック
+                if (!conversationId) {
+                    throw new Error('会話IDが取得できません');
+                }
+
+                console.log('会話ID:', conversationId);
+
+                // 会話情報を取得
+                const convRef = window.firebaseDoc(window.firebaseDB, 'conversations', conversationId);
+                const convDoc = await window.firebaseGetDoc(convRef);
+
+                if (!convDoc.exists()) {
+                    throw new Error('会話が見つかりません (ID: ' + conversationId + ')');
+                }
+
+                conversationData = convDoc.data();
+                hasClientSent = conversationData.clientHasSent || false;
+
+                console.log('会話データ取得成功:', conversationData);
+
+                // 占い師情報を取得
+                const ftRef = window.firebaseDoc(window.firebaseDB, 'fortuneTellers', conversationData.fortuneTellerId);
+                const ftDoc = await window.firebaseGetDoc(ftRef);
+                
+                if (ftDoc.exists()) {
+                    fortuneTellerData = ftDoc.data();
+                    document.getElementById('fortuneName').textContent = fortuneTellerData.name || '占い師';
+                }
+
+                // 料金チェック（初回かどうか）
+                await checkInitialOffer(conversationData.fortuneTellerId);
+
+                // ステータスに応じてUI更新
+                updateUIByStatus();
+
+                // メッセージをリアルタイム監視
+                loadMessages();
+
+                console.log('✅ 初期化完了！');
+
+            } catch (error) {
+                console.error('❌ 初期化エラー:', error);
+                alert('エラー: ' + error.message + '\n\nトップページに戻ります。');
+                window.location.href = 'index.html';
+            }
+        }
+
+        // ステータスによるUI更新
+        function updateUIByStatus() {
+            const status = conversationData.status;
+            const statusBadge = document.getElementById('statusBadge');
+            const infoBanner = document.getElementById('infoBanner');
+            const completedBanner = document.getElementById('completedBanner');
+            const inputArea = document.getElementById('inputArea');
+            const messageInput = document.getElementById('messageInput');
+            const sendButton = document.getElementById('sendButton');
+
+            if (status === 'answered') {
+                // 鑑定完了
+                statusBadge.textContent = '鑑定完了';
+                statusBadge.style.background = 'rgba(76, 175, 80, 0.3)';
+                infoBanner.style.display = 'none';
+                completedBanner.style.display = 'block';
+                inputArea.classList.add('disabled');
+                messageInput.disabled = true;
+                messageInput.placeholder = 'この鑑定は終了しました';
+                sendButton.disabled = true;
+            } else if (hasClientSent) {
+                // お客様送信済み、占い師の返信待ち
+                statusBadge.textContent = '返信待ち';
+                infoBanner.innerHTML = '占い師からの返信をお待ちください（24時間以内に返信します）';
+                inputArea.classList.add('disabled');
+                messageInput.disabled = true;
+                messageInput.placeholder = '返信をお待ちください';
+                sendButton.disabled = true;
+            } else {
+                // お客様がまだ送信していない
+                statusBadge.textContent = '質問受付中';
+                infoBanner.innerHTML = '100文字以内で質問できます（500pt消費）';
+            }
+        }
+
+        // メッセージを読み込み
+        function loadMessages() {
+            const messagesRef = window.firebaseCollection(window.firebaseDB, 'messages');
+            const q = window.firebaseQuery(
+                messagesRef,
+                window.firebaseWhere('conversationId', '==', conversationId),
+                window.firebaseOrderBy('createdAt', 'asc')
+            );
+
+            window.firebaseOnSnapshot(q, (snapshot) => {
+                const chatArea = document.getElementById('chatArea');
+                
+                if (snapshot.empty) {
+                    chatArea.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">💌</div>
+                            <div>
+                                100文字以内でメッセージを送信できます<br>
+                                1回の送信で500pt消費します
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                chatArea.innerHTML = '';
+                
+                snapshot.forEach(doc => {
+                    const msg = doc.data();
+                    renderMessage(msg);
+                });
+
+                chatArea.scrollTop = chatArea.scrollHeight;
+            });
+        }
+
+        // メッセージを表示
+        function renderMessage(msg) {
+            const chatArea = document.getElementById('chatArea');
+            const isClient = msg.senderId === currentUser.uid;
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isClient ? 'client' : 'fortune'}`;
+            
+            const avatar = isClient ? (currentUser.name ? currentUser.name.charAt(0) : 'あ') : (fortuneTellerData?.name ? fortuneTellerData.name.charAt(0) : '占');
+            const time = msg.createdAt ? new Date(msg.createdAt.toMillis()).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) : '';
+
+            messageDiv.innerHTML = `
+                <div class="message-avatar">${avatar}</div>
+                <div class="message-content">
+                    <div class="message-bubble">${escapeHtml(msg.text)}</div>
+                    <div class="message-time">${time}</div>
+                </div>
+            `;
+
+            chatArea.appendChild(messageDiv);
+        }
+
+        // HTMLエスケープ
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 文字数カウント
+        const messageInput = document.getElementById('messageInput');
+        const charCount = document.getElementById('charCount');
+        const sendButton = document.getElementById('sendButton');
+
+        messageInput.addEventListener('input', () => {
+            const length = messageInput.value.length;
+            charCount.textContent = length;
+            
+            if (length > 100) {
+                charCount.parentElement.classList.add('over');
+            } else {
+                charCount.parentElement.classList.remove('over');
+            }
+
+            sendButton.disabled = length === 0 || length > 100 || hasClientSent;
+        });
+
+        // メッセージ送信
+        sendButton.addEventListener('click', async () => {
+            const text = messageInput.value.trim();
+            
+            if (!text || text.length > 100) {
+                alert('1〜100文字で入力してください');
+                return;
+            }
+
+            if (hasClientSent) {
+                alert('すでに質問を送信済みです');
+                return;
+            }
+
+            // ポイントチェック（動的料金）
+            if (currentUser.points < currentPrice) {
+                alert(`ポイントが不足しています。${currentPrice}ポイント必要です。`);
+                window.location.href = 'purchase.html';
+                return;
+            }
+
+            try {
+                sendButton.disabled = true;
+                messageInput.disabled = true;
+
+                // メッセージを送信
+                await window.firebaseAddDoc(
+                    window.firebaseCollection(window.firebaseDB, 'messages'),
+                    {
+                        conversationId: conversationId,
+                        senderId: currentUser.uid,
+                        senderType: 'client',
+                        text: text,
+                        createdAt: window.firebaseServerTimestamp()
+                    }
+                );
+
+                // 会話を更新（お客様送信済みフラグ）
+                const convRef = window.firebaseDoc(window.firebaseDB, 'conversations', conversationId);
+                await window.firebaseUpdateDoc(convRef, {
+                    clientHasSent: true,
+                    lastMessage: text.substring(0, 50),
+                    lastMessageAt: window.firebaseServerTimestamp()
+                });
+
+                // ポイントを消費（動的料金）
+                currentUser.points -= currentPrice;
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+
+                // 初回利用の場合、フラグを保存
+                if (isFirstTime) {
+                    const initialOfferRef = window.firebaseDoc(
+                        window.firebaseDB,
+                        `clients/${currentUser.uid}/initialOffers`,
+                        conversationData.fortuneTellerId
+                    );
+                    await window.firebaseSetDoc(initialOfferRef, {
+                        used: true,
+                        usedAt: window.firebaseServerTimestamp(),
+                        deviceId: deviceId,
+                        price: currentPrice
+                    });
+                    
+                    // 次回から通常料金
+                    isFirstTime = false;
+                }
+
+                // UIを更新
+                hasClientSent = true;
+                conversationData.clientHasSent = true;
+                updateUIByStatus();
+
+                // 入力欄をクリア
+                messageInput.value = '';
+                charCount.textContent = '0';
+
+            } catch (error) {
+                console.error('送信エラー:', error);
+                alert('送信に失敗しました');
+                sendButton.disabled = false;
+                messageInput.disabled = false;
+            }
+        });
+
+        function goBack() {
+            // 占い師IDを取得
+            const fortuneTellerId = localStorage.getItem('selectedFortuneTellerId');
+            
+            if (fortuneTellerId) {
+                // 占い師プロフィールに戻る
+                window.location.href = `fortune-profile.html?id=${fortuneTellerId}`;
+            } else {
+                // IDがない場合はマイページに戻る
+                window.location.href = 'mypage.html';
+            }
+        }
+
+        // 初期化実行
+        console.log('🔷 mail-chat.html 読み込み完了');
+        console.log('🔷 conversationId:', conversationId);
+        console.log('🔷 firebaseReady:', window.firebaseReady);
+        
+        if (window.firebaseReady) {
+            console.log('🔷 Firebase既に初期化済み - init()を実行');
+            init();
+        } else {
+            console.log('🔷 Firebaseイベント待機中...');
+            window.addEventListener('firebaseReady', () => {
+                console.log('🔷 firebaseReadyイベント受信 - init()を実行');
+                init();
+            });
+        }
+    </script>
+</body>
+</html>
