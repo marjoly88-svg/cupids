@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>キューピッズ - メールチャット占い｜月に代わって恋を応援</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#E967A5">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="キューピッズ">
+    <link rel="apple-touch-icon" href="/icon-192.png">
+    
+    <!-- SEO & OGP -->
+    <meta name="description" content="キューピッズは100文字500ptで気軽に相談できるメールチャット占いサービス。恋愛・仕事・人間関係の悩みを経験豊富な占い師が解決します。">
+    <meta property="og:title" content="キューピッズ - メールチャット占い">
+    <meta property="og:description" content="月に代わってあなたの恋を応援します♡ 100文字500ptのメールチャット占い">
+    <meta property="og:image" content="./cupids-icon.png">
+    <meta property="og:url" content="https://cupids-seven.vercel.app/">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content="./cupids-icon.png">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="./cupids-icon.png">
+    <link rel="apple-touch-icon" href="./cupids-icon.png">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans', sans-serif;
+            background: #F5F5F5;
+        }
+
+        /* ヘッダー */
+        .header {
+            background: linear-gradient(90deg, #E967A5 0%, #B565D8 100%);
+            padding: 12px 16px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .reload-button {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        
+        .reload-button:hover {
+            background: rgba(255,255,255,0.3);
+            transform: rotate(180deg);
+        }
+
+        .logo {
+            height: 56px;
+            width: auto;
+        }
+
+        .logo-text {
+            font-size: 20px;
+            font-weight: bold;
+            color: white;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .btn-guide {
+            padding: 8px 16px;
+            background: white;
+            color: #E967A5;
+            border: 2px solid #E967A5;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .btn-guide:hover {
+            background: #FFF0F5;
+        }
+
+        .points-display {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 14px;
+            color: white;
+        }
+
+        .points-value {
+            font-weight: bold;
+            color: white;
+        }
+
+        .btn-register, .btn-login, .btn-purchase {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+
+        .btn-register {
+            background: linear-gradient(135deg, #E967A5 0%, #B565D8 100%);
+            color: white;
+            border: 2px solid white;
+        }
+
+        .btn-login {
+            background: white;
+            color: #E967A5;
+            border: 2px solid #E967A5;
+        }
+
+        .btn-purchase {
+            background: linear-gradient(135deg, #E967A5 0%, #B565D8 100%);
+            color: white;
+        }
+
+        .btn-register:hover, .btn-purchase:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 10px rgba(233, 103, 165, 0.3);
+        }
+
+        .btn-login:hover {
+            background: #FFF0F5;
+        }
+
+        /* テスト用ボタン */
+        .test-buttons {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 1000;
+        }
+
+        .btn-test {
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            color: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            transition: all 0.2s;
+        }
+
+        .btn-test:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        .btn-test.client {
+            background: #E967A5;
+        }
+
+        .btn-test.fortune {
+            background: #B565D8;
+        }
+
+        .btn-test.admin {
+            background: #666;
+        }
+
+        /* タグライン */
+        .tagline {
+            background: white;
+            padding: 20px;
+            text-align: center;
+            color: #E967A5;
+            font-size: 18px;
+            font-weight: 600;
+            font-family: 'Comic Sans MS', sans-serif;
+            letter-spacing: 1px;
+        }
+
+        /* 検索バー */
+        .search-container {
+            background: white;
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .search-box {
+            display: flex;
+            align-items: center;
+            background: #F5F5F5;
+            border-radius: 20px;
+            padding: 8px 16px;
+            flex: 1;
+        }
+        
+        .search-reload-btn {
+            background: transparent;
+            border: none;
+            color: #E967A5;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.2s;
+        }
+        
+        .search-reload-btn:hover {
+            transform: rotate(180deg);
+            background: rgba(233, 103, 165, 0.1);
+        }
+
+        .search-icon {
+            color: #999;
+            margin-right: 8px;
+            font-size: 18px;
+        }
+
+        .search-input {
+            flex: 1;
+            border: none;
+            background: none;
+            font-size: 14px;
+            outline: none;
+        }
+
+        /* すぐ占えるセクション */
+        .quick-section {
+            background: white;
+            padding: 16px;
+            margin-bottom: 8px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 12px;
+        }
+
+        .quick-fortune-tellers {
+            display: flex;
+            gap: 12px;
+            overflow-x: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .quick-fortune-tellers::-webkit-scrollbar {
+            display: none;
+        }
+
+        .quick-card {
+            flex-shrink: 0;
+            width: 120px;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .quick-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 8px;
+            font-size: 32px;
+            font-weight: bold;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .quick-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .quick-name {
+            font-size: 13px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .quick-status {
+            background: #7FD959;
+            color: white;
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 12px;
+            display: inline-block;
+        }
+
+        /* 占い師一覧 */
+        .fortune-tellers-section {
+            background: white;
+            padding: 16px;
+        }
+
+        .fortune-teller-card {
+            display: flex;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #F0F0F0;
+            cursor: pointer;
+            transition: background 0.2s;
+            position: relative;
+        }
+
+        .fortune-teller-card:hover {
+            background: #FAFAFA;
+        }
+
+        .fortune-teller-card:last-child {
+            border-bottom: none;
+        }
+
+        .ft-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            flex-shrink: 0;
+            margin-right: 12px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .ft-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .new-badge {
+            display: inline-block;
+            background: #FF6B9D;
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-left: 6px;
+            vertical-align: middle;
+        }
+
+        .ft-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .ft-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+
+        .ft-name {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .ft-stats {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 6px;
+        }
+
+        .star-rating {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .star {
+            color: #FFD700;
+        }
+
+        .review-count {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .active-clients {
+            font-size: 12px;
+            color: #E967A5;
+            font-weight: 600;
+            margin-top: 4px;
+            padding: 2px 8px;
+            background: rgba(233, 103, 165, 0.1);
+            border-radius: 10px;
+            display: inline-block;
+        }
+
+        .ft-status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .status-available {
+            background: linear-gradient(135deg, #7FD959 0%, #4CAF50 100%);
+            color: white;
+        }
+
+        .status-accepting {
+            background: linear-gradient(135deg, #FFC107 0%, #FF9800 100%);
+            color: white;
+        }
+
+        .status-offline {
+            background: #E0E0E0;
+            color: #999;
+        }
+
+        .ft-price {
+            text-align: right;
+            flex-shrink: 0;
+            margin-left: 12px;
+        }
+
+        .price-label {
+            font-size: 11px;
+            color: #999;
+        }
+
+        .price-value {
+            font-size: 16px;
+            font-weight: bold;
+            color: #E967A5;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+            font-size: 14px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <!-- ヘッダー -->
+    <div class="header">
+        <div class="logo-container">
+            <img src="https://i.postimg.cc/cJHzbjB0/kyupizzu.png" alt="キューピッズ" class="logo" onerror="this.style.display='none'" style="cursor: pointer;" onclick="window.location.href='index.html'">
+        </div>
+        <div class="header-right" id="headerRight">
+            <!-- ボタンはJavaScriptで動的に追加 -->
+        </div>
+    </div>
+
+    <!-- タグライン -->
+    <div class="tagline">月に代わってあなたの恋を応援します♡</div>
+
+    <!-- 検索バー -->
+    <div class="search-container">
+        <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" class="search-input" id="searchInput" placeholder="占い師を検索">
+        </div>
+        <button class="search-reload-btn" onclick="location.reload()" title="リロード">🔄</button>
+    </div>
+
+    <!-- 占い師一覧 -->
+    <div class="fortune-tellers-section">
+        <div class="section-title">占い師一覧</div>
+        <div id="fortuneTellersList">
+            <div class="loading">読み込み中...</div>
+        </div>
+    </div>
+
+    <!-- サイトマップ -->
+    <div style="background: #F5F5F5; padding: 24px 16px; margin-top: 8px;">
+        <div style="max-width: 800px; margin: 0 auto;">
+            <h3 style="font-size: 16px; font-weight: bold; color: #333; margin-bottom: 16px; text-align: center;">サイトマップ</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <a href="client-register.html" style="text-align: center; padding: 12px; background: white; border-radius: 8px; text-decoration: none; color: #E967A5; font-size: 14px; font-weight: bold;">新規登録</a>
+                <a href="client-login.html" style="text-align: center; padding: 12px; background: white; border-radius: 8px; text-decoration: none; color: #E967A5; font-size: 14px; font-weight: bold;">ログイン</a>
+                <a href="purchase.html" style="text-align: center; padding: 12px; background: white; border-radius: 8px; text-decoration: none; color: #666; font-size: 13px;">ポイント購入</a>
+                <a href="privacy.html" style="text-align: center; padding: 12px; background: white; border-radius: 8px; text-decoration: none; color: #666; font-size: 13px;">プライバシーポリシー</a>
+                <a href="terms.html" style="text-align: center; padding: 12px; background: white; border-radius: 8px; text-decoration: none; color: #666; font-size: 13px;">利用規約</a>
+                <a href="legal.html" style="text-align: center; padding: 12px; background: white; border-radius: 8px; text-decoration: none; color: #666; font-size: 13px;">特定商取引法</a>
+            </div>
+            <div style="text-align: center; margin-top: 16px; font-size: 12px; color: #999;">
+                © 2025 Cupids Chat. All rights reserved.
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getFirestore, collection, getDocs, query, where, doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyA52uJ31HzLkbz32lA-3WWSmhM10xYjjCg",
+            authDomain: "cupids-chat.firebaseapp.com",
+            projectId: "cupids-chat",
+            storageBucket: "cupids-chat.firebasestorage.app",
+            messagingSenderId: "44532110483",
+            appId: "1:44532110483:web:d6266e8abba8582b8b6966"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        window.firebaseAuth = auth;
+        window.firebaseDB = db;
+        window.firebaseCollection = collection;
+        window.firebaseGetDocs = getDocs;
+        window.firebaseQuery = query;
+        window.firebaseWhere = where;
+        window.firebaseDoc = doc;
+        window.firebaseGetDoc = getDoc;
+
+        window.firebaseReady = true;
+        window.dispatchEvent(new Event('firebaseReady'));
+        console.log('✅ Firebase初期化完了!');
+    </script>
+
+    <script>
+        let currentUser = null;
+        let allFortuneTellers = [];
+
+        // ログイン状態を確認する関数
+        function initAuth() {
+            if (!window.firebaseAuth) {
+                console.error('Firebase Auth is not initialized');
+                renderHeaderLoggedOut();
+                return;
+            }
+
+            window.firebaseAuth.onAuthStateChanged(async (user) => {
+                if (user) {
+                    // Firebase認証済み - localStorageからユーザー情報を取得
+                    const storedUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+                    
+                    if (storedUser && storedUser.type === 'client' && storedUser.uid === user.uid) {
+                        currentUser = storedUser;
+                        renderHeaderLoggedIn();
+                    } else {
+                        // localStorageの情報が不正
+                        renderHeaderLoggedOut();
+                    }
+                } else {
+                    // 未ログイン
+                    currentUser = null;
+                    renderHeaderLoggedOut();
+                }
+            });
+        }
+
+        // ヘッダー（ログイン前）
+        function renderHeaderLoggedOut() {
+            const headerRight = document.getElementById('headerRight');
+            headerRight.innerHTML = `
+                <a href="guide.html" class="btn-guide">占い方 / 料金</a>
+                <button class="btn-register" onclick="goToRegister()">新規登録</button>
+                <button class="btn-login" onclick="goToLogin()">ログイン</button>
+            `;
+        }
+
+        // ヘッダー（ログイン後）
+        async function renderHeaderLoggedIn() {
+            const headerRight = document.getElementById('headerRight');
+            
+            // Firestoreから最新のポイントを取得
+            let points = 0;
+            if (currentUser && currentUser.uid) {
+                try {
+                    const userRef = window.firebaseDoc(window.firebaseDB, 'users', currentUser.uid);
+                    const userDoc = await window.firebaseGetDoc(userRef);
+                    if (userDoc.exists()) {
+                        points = userDoc.data().points || 0;
+                        // currentUserも更新
+                        currentUser.points = points;
+                        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    }
+                } catch (error) {
+                    console.error('ポイント取得エラー:', error);
+                    points = currentUser?.points || 0;
+                }
+            }
+            
+            headerRight.innerHTML = `
+                <a href="guide.html" class="btn-guide">占い方 / 料金</a>
+                <div class="points-display">
+                    <span class="points-value">${points}pt</span>
+                </div>
+                <button class="btn-purchase" onclick="goToPurchase()">💰購入</button>
+                <button class="btn-login" onclick="goToMyPage()">マイページ</button>
+            `;
+        }
+
+        // 占い師を読み込み
+        async function loadFortuneTellers() {
+            try {
+                const fortuneTellersRef = window.firebaseCollection(window.firebaseDB, 'fortuneTellers');
+                const snapshot = await window.firebaseGetDocs(fortuneTellersRef);
+
+                allFortuneTellers = [];
+                
+                // 各占い師の進行中チャット数を取得
+                for (const doc of snapshot.docs) {
+                    const ftData = { id: doc.id, ...doc.data() };
+                    
+                    // ログインしている場合のみ、進行中のチャット数を取得
+                    if (currentUser) {
+                        try {
+                            const convsRef = window.firebaseCollection(window.firebaseDB, 'conversations');
+                            const convsQuery = window.firebaseQuery(
+                                convsRef,
+                                window.firebaseWhere('fortuneTellerId', '==', doc.id),
+                                window.firebaseWhere('status', '==', 'active')
+                            );
+                            const convsSnapshot = await window.firebaseGetDocs(convsQuery);
+                            ftData.activeChats = convsSnapshot.size;
+                        } catch (error) {
+                            console.error('チャット数取得エラー:', error);
+                            ftData.activeChats = 0;
+                        }
+                    } else {
+                        // 未ログイン時は表示しない
+                        ftData.activeChats = 0;
+                    }
+                    
+                    allFortuneTellers.push(ftData);
+                }
+
+                // ステータス順にソート（available > accepting > offline）
+                allFortuneTellers.sort((a, b) => {
+                    const statusOrder = { available: 0, accepting: 1, offline: 2 };
+                    return (statusOrder[a.status] || 3) - (statusOrder[b.status] || 3);
+                });
+                
+                // 初期表示はオンライン・受付中のみ
+                const onlineFTs = filterOnlineOrFavorites(allFortuneTellers);
+                renderFortuneTellersList(onlineFTs);
+
+            } catch (error) {
+                console.error('占い師読み込みエラー:', error);
+                document.getElementById('fortuneTellersList').innerHTML = 
+                    '<div class="no-results">占い師の読み込みに失敗しました</div>';
+            }
+        }
+
+        // オンライン・受付中のみフィルター
+        function filterOnlineOrFavorites(fortuneTellers) {
+            return fortuneTellers.filter(ft => {
+                // オンラインまたは受付中のみ表示
+                return ft.status === 'available' || ft.status === 'accepting';
+            });
+        }
+
+        // 占い師一覧を表示
+        function renderFortuneTellersList(fortuneTellers) {
+            const container = document.getElementById('fortuneTellersList');
+
+            if (fortuneTellers.length === 0) {
+                container.innerHTML = '<div class="no-results">該当する占い師が見つかりません</div>';
+                return;
+            }
+
+            container.innerHTML = '';
+            fortuneTellers.forEach(ft => {
+                const card = document.createElement('div');
+                card.className = 'fortune-teller-card';
+                
+                // カードクリックでプロフィールへ
+                card.onclick = (e) => {
+                    // お気に入りボタンをクリックした場合は遷移しない
+                    if (!e.target.closest('.favorite-btn')) {
+                        goToProfile(ft.id);
+                    }
+                };
+
+                const name = ft.name || ft.displayName || '占い師';
+                const initial = name.charAt(0);
+                const imageUrl = ft.photoURL || ft.profileImageUrl || ft.imageUrl;
+                const rating = (ft.averageRating || 5.0).toFixed(1);
+                const reviewCount = ft.totalSessions || ft.totalReviews || 0;
+                const pricePerChar = ft.price || ft.pricePerCharacter || 5;
+
+                let avatarContent = initial;
+                if (imageUrl) {
+                    avatarContent = `<img src="${imageUrl}" alt="${name}">`;
+                }
+
+                // ステータスバッジ
+                let statusBadge = '';
+                let statusClass = 'status-offline';
+                if (ft.status === 'available') {
+                    statusBadge = 'すぐ占えます';
+                    statusClass = 'status-available';
+                } else if (ft.status === 'accepting') {
+                    statusBadge = '鑑定受付中';
+                    statusClass = 'status-accepting';
+                } else {
+                    statusBadge = '満員';
+                    statusClass = 'status-offline';
+                }
+
+                // NEW バッジ
+                let isNew = false;
+                if (ft.createdAt && ft.createdAt.toMillis) {
+                    isNew = (Date.now() - ft.createdAt.toMillis()) < 7 * 24 * 60 * 60 * 1000;
+                }
+                // テスト用：魔女のみなみさんは常にNEW表示
+                if (ft.name === '魔女のみなみさん') {
+                    isNew = true;
+                }
+                const newBadge = isNew ? '<span class="new-badge">NEW</span>' : '';
+
+                card.innerHTML = `
+                    <div class="ft-avatar">
+                        ${avatarContent}
+                    </div>
+                    <div class="ft-info">
+                        <div class="ft-header">
+                            <div class="ft-name">${name}${newBadge}</div>
+                        </div>
+                        <div class="ft-stats">
+                            <div class="star-rating">
+                                <span class="star">⭐</span>
+                                <span>${rating}</span>
+                            </div>
+                            <div class="review-count">鑑定数 ${reviewCount}件</div>
+                        </div>
+                    </div>
+                    <div class="ft-price">
+                        <div class="price-label">1送信</div>
+                        <div class="price-value">500pt</div>
+                    </div>
+                `;
+
+                container.appendChild(card);
+            });
+        }
+
+        // 検索機能
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase().trim();
+
+            if (searchTerm === '') {
+                // 検索なし → オンライン・受付中・お気に入りのみ
+                const onlineFTs = filterOnlineOrFavorites(allFortuneTellers);
+                renderFortuneTellersList(onlineFTs);
+                return;
+            }
+
+            // 検索あり → 全員から検索（オフラインも含む）
+            const filtered = allFortuneTellers.filter(ft => {
+                const name = (ft.name || ft.displayName || '').toLowerCase();
+                return name.includes(searchTerm);
+            });
+
+            renderFortuneTellersList(filtered);
+        });
+
+        // ページ遷移
+        function goToProfile(fortuneTellerId) {
+            window.location.href = `fortune-profile.html?id=${fortuneTellerId}`;
+        }
+
+        function goToRegister() {
+            window.location.href = 'client-register.html';
+        }
+
+        function goToLogin() {
+            window.location.href = 'client-login.html';
+        }
+
+        function goToPurchase() {
+            window.location.href = 'purchase.html';
+        }
+        
+        function goToMyPage() {
+            window.location.href = 'mypage.html';
+        }
+
+        // テスト用ログイン機能
+        function testLoginAsFortuneTeller() {
+            // テスト用占い師アカウントを作成
+            localStorage.setItem('currentUser', JSON.stringify({
+                uid: 'test-fortune-001',
+                email: 'test-fortune@cupids.com',
+                type: 'fortune-teller',
+                name: 'テスト占い師',
+                status: 'available'
+            }));
+            window.location.href = 'fortune-lobby.html';
+        }
+
+        function testLoginAsAdmin() {
+            // 管理者アカウントを作成
+            localStorage.setItem('currentUser', JSON.stringify({
+                uid: 'admin-001',
+                email: 'admin@cupids.com',
+                type: 'admin',
+                name: '管理者'
+            }));
+            // 管理画面に遷移
+            window.location.href = 'admin.html';
+        }
+
+        // Firebase初期化を待ってから初期化
+        if (window.firebaseReady) {
+            initAuth();
+            loadFortuneTellers();
+        } else {
+            window.addEventListener('firebaseReady', () => {
+                initAuth();
+                loadFortuneTellers();
+            });
+        }
+    </script>
+
+
+</body>
+</html>
