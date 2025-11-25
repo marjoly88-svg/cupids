@@ -16,63 +16,69 @@ const squareClient = new Client({
  * POST /createCheckout
  * Body: { userId, amount, points }
  */
-exports.createCheckout = functions.https.onRequest((req, res) => {
-  cors(req, res, async () => {
-    if (req.method !== 'POST') {
-      return res.status(405).json({ error: 'Method not allowed' });
+exports.createCheckout = functions.https.onRequest(async (req, res) => {
+  // ★CORSヘッダーを毎回つける
+  res.set('Access-Control-Allow-Origin', 'https://cupids-seven.vercel.app');
+  res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
+
+  // ★ブラウザのプリフライト(OPTIONS)用
+  if (req.method === 'OPTIONS') {
+    return res.status(204).send('');
+  }
+
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  try {
+    const { userId, amount, points } = req.body;
+
+    if (!userId || !amount || !points) {
+      return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    try {
-      const { userId, amount, points } = req.body;
+    const locationId = functions.config().square.location_id;
 
-      if (!userId || !amount || !points) {
-        return res.status(400).json({ error: 'Missing required fields' });
-      }
-
-      // Square Checkoutセッションを作成
-      const locationId = functions.config().square.location_id;
-      
-      const response = await squareClient.checkoutApi.createPaymentLink({
-        idempotencyKey: `${userId}-${Date.now()}`,
-        quickPay: {
-          name: `キューピッズ ${points}ポイント`,
-          priceMoney: {
-            amount: BigInt(amount),
-            currency: 'JPY',
-          },
-          locationId: locationId,
+    const response = await squareClient.checkoutApi.createPaymentLink({
+      idempotencyKey: `${userId}-${Date.now()}`,
+      quickPay: {
+        name: `キューピッズ ${points}ポイント`,
+        priceMoney: {
+          amount: BigInt(amount), // 金額(円)をそのままBigIntで送る
+          currency: 'JPY',
         },
-        checkoutOptions: {
-          redirectUrl: `https://cupids-seven.vercel.app/purchase.html?success=true`,
-          askForShippingAddress: false,
-        },
-        // メタデータにユーザー情報を保存
-        prePopulatedData: {
-          buyerEmail: '',
-        },
-        note: JSON.stringify({
-          userId: userId,
-          points: points,
-          timestamp: Date.now(),
-        }),
-      });
+        locationId: locationId,
+      },
+      checkoutOptions: {
+        redirectUrl: `https://cupids-seven.vercel.app/purchase.html?success=true`,
+        askForShippingAddress: false,
+      },
+      prePopulatedData: {
+        buyerEmail: '',
+      },
+      note: JSON.stringify({
+        userId,
+        points,
+        timestamp: Date.now(),
+      }),
+    });
 
-      const checkoutUrl = response.result.paymentLink.url;
-      
-      res.json({
-        success: true,
-        checkoutUrl: checkoutUrl,
-      });
+    const checkoutUrl = response.result.paymentLink.url;
 
-    } catch (error) {
-      console.error('Square Checkout作成エラー:', error);
-      res.status(500).json({ 
-        error: 'Checkout作成に失敗しました',
-        details: error.message 
-      });
-    }
-  });
+    return res.json({
+      success: true,
+      checkoutUrl,
+    });
+  } catch (error) {
+    console.error('Square Checkout作成エラー:', error);
+    return res.status(500).json({
+      error: 'Checkout作成に失敗しました',
+      details: error.message,
+    });
+  }
 });
+
 
 /**
  * Square Webhook - 決済完了時に自動でポイント付与
