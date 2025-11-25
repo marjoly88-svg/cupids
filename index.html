@@ -806,10 +806,11 @@
                         ${activeClientsDisplay}
                         <span class="ft-status-badge ${statusClass}">${statusBadge}</span>
                     </div>
-                    <div class="ft-price">
-                        <div class="price-label">1送信</div>
-                        <div class="price-value">500pt</div>
-                    </div>
+                   <div class="ft-price">
+    <div class="price-label">1送信</div>
+    <div class="price-value">${pricePerChar * 100}pt</div>
+</div>
+
                 `;
 
                 container.appendChild(card);
