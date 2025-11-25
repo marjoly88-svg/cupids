@@ -671,17 +671,16 @@
                 allFortuneTellers = [];
                 
                 // 各占い師の進行中チャット数を取得
-                for (const doc of snapshot.docs) {
-                    const ftData = { id: doc.id, ...doc.data() };
+                for (const docSnapshot of snapshot.docs) {
+                    const ftData = { id: docSnapshot.id, ...docSnapshot.data() };
                     
                     // ログインしている場合のみチャット数を取得（未ログイン時のpermissionエラー回避）
                     if (currentUser) {
-                        // 進行中のチャット数を取得（conversationsコレクションから）
                         try {
                             const convsRef = window.firebaseCollection(window.firebaseDB, 'conversations');
                             const convsQuery = window.firebaseQuery(
                                 convsRef,
-                                window.firebaseWhere('fortuneTellerId', '==', doc.id),
+                                window.firebaseWhere('fortuneTellerId', '==', docSnapshot.id),
                                 window.firebaseWhere('status', '==', 'active')
                             );
                             const convsSnapshot = await window.firebaseGetDocs(convsQuery);
@@ -750,7 +749,10 @@
                 const imageUrl = ft.photoURL || ft.profileImageUrl || ft.imageUrl;
                 const rating = (ft.averageRating || 5.0).toFixed(1);
                 const reviewCount = ft.totalSessions || ft.totalReviews || 0;
+
+                // ▼ここで単価と1送信価格を計算
                 const pricePerChar = ft.price || ft.pricePerCharacter || 5;
+                const pricePerSend = ft.regularPrice || (pricePerChar * 100);
 
                 let avatarContent = initial;
                 if (imageUrl) {
@@ -806,11 +808,10 @@
                         ${activeClientsDisplay}
                         <span class="ft-status-badge ${statusClass}">${statusBadge}</span>
                     </div>
-                   <div class="ft-price">
-    <div class="price-label">1送信</div>
-    <div class="price-value">${pricePerChar * 100}pt</div>
-</div>
-
+                    <div class="ft-price">
+                        <div class="price-label">1送信</div>
+                        <div class="price-value">${pricePerSend}pt</div>
+                    </div>
                 `;
 
                 container.appendChild(card);
@@ -822,7 +823,7 @@
             const searchTerm = e.target.value.toLowerCase().trim();
 
             if (searchTerm === '') {
-                // 検索なし → オンライン・受付中・お気に入りのみ
+                // 検索なし → オンライン・受付中のみ
                 const onlineFTs = filterOnlineOrFavorites(allFortuneTellers);
                 renderFortuneTellersList(onlineFTs);
                 return;
@@ -860,7 +861,6 @@
 
         // テスト用ログイン機能
         function testLoginAsFortuneTeller() {
-            // テスト用占い師アカウントを作成
             localStorage.setItem('currentUser', JSON.stringify({
                 uid: 'test-fortune-001',
                 email: 'test-fortune@cupids.com',
@@ -872,14 +872,12 @@
         }
 
         function testLoginAsAdmin() {
-            // 管理者アカウントを作成
             localStorage.setItem('currentUser', JSON.stringify({
                 uid: 'admin-001',
                 email: 'admin@cupids.com',
                 type: 'admin',
                 name: '管理者'
             }));
-            // 管理画面に遷移
             window.location.href = 'admin.html';
         }
 
@@ -894,7 +892,5 @@
             });
         }
     </script>
-
-
 </body>
 </html>
