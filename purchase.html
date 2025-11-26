@@ -59,7 +59,7 @@
             text-align: center;
         }
 
-        /* 追加：注意書きボックス */
+        /* 注意書きボックス */
         .points-note {
             max-width: 720px;
             margin: 0 auto 25px;
@@ -268,18 +268,17 @@
         <!-- ポイントプラン -->
         <div class="section-title">ポイントを購入</div>
 
-        <!-- ★ここに説明文を追加 -->
+        <!-- 注意書き（しょーちゃん指定の2行だけ） -->
         <div class="points-note">
-            <p><strong>※キューピッズに登録しているメールアドレスと同じメールアドレスで決済してください。</strong><br>
-            （メールアドレスが違うと自動でポイントが反映されません</p>
-            <p style="margin-top:8px;">
-                
+            <p>
+                <strong>※キューピッズに登録しているメールアドレスと同じメールアドレスで決済してください。</strong><br>
+                （メールアドレスが違うと自動でポイントが反映されません）
             </p>
         </div>
         
         <div class="plans-grid">
             <!-- 800円プラン -->
-            <div class="plan-card" onclick="purchasePlan(800, 800)">
+            <div class="plan-card" onclick="purchasePlan(800, 800, 'https://minamisan.square.site/s/order?cs=true&cst=popular&item=1')">
                 <div class="plan-points">800</div>
                 <div class="plan-points-label">ポイント</div>
                 <div class="bonus-info"></div>
@@ -288,7 +287,7 @@
             </div>
 
             <!-- 1,600円プラン -->
-            <div class="plan-card" onclick="purchasePlan(1600, 1600)">
+            <div class="plan-card" onclick="purchasePlan(1600, 1600, 'https://minamisan.square.site/s/order?cs=true&cst=popular&item=2')">
                 <div class="plan-points">1,600</div>
                 <div class="plan-points-label">ポイント</div>
                 <div class="bonus-info"></div>
@@ -297,7 +296,7 @@
             </div>
 
             <!-- 3,100円プラン（おすすめ） -->
-            <div class="plan-card recommended" onclick="purchasePlan(3100, 3200)">
+            <div class="plan-card recommended" onclick="purchasePlan(3100, 3200, 'https://minamisan.square.site/s/order?cs=true&cst=popular&item=3')">
                 <div class="recommended-badge">👑 人気</div>
                 <div class="bonus-badge">100ptお得</div>
                 <div class="plan-points">3,200</div>
@@ -308,7 +307,7 @@
             </div>
 
             <!-- 6,200円プラン -->
-            <div class="plan-card" onclick="purchasePlan(6200, 6400)">
+            <div class="plan-card" onclick="purchasePlan(6200, 6400, 'https://minamisan.square.site/s/order?cs=true&cst=popular&item=4')">
                 <div class="bonus-badge">200ptお得</div>
                 <div class="plan-points">6,400</div>
                 <div class="plan-points-label">ポイント</div>
@@ -318,7 +317,7 @@
             </div>
 
             <!-- 10,000円プラン -->
-            <div class="plan-card" onclick="purchasePlan(10000, 10400)">
+            <div class="plan-card" onclick="purchasePlan(10000, 10400, 'https://minamisan.square.site/s/order?cs=true&cst=popular&item=VUGQOED33ADPXWPPFKOKJUKP')">
                 <div class="bonus-badge">400ptお得</div>
                 <div class="plan-points">10,400</div>
                 <div class="plan-points-label">ポイント</div>
@@ -341,7 +340,7 @@
         </div>
     </div>
 
-    <!-- ローディング -->
+    <!-- ローディング（今は使ってないけどデザインはそのまま残してる） -->
     <div class="loading" id="loading">
         <div class="loading-content">
             <div class="spinner"></div>
@@ -349,7 +348,7 @@
         </div>
     </div>
 
-    <!-- Firebase SDK -->
+    <!-- Firebase SDK（既存のまま。将来のために残してある） -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { getFirestore } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
@@ -371,7 +370,7 @@
     </script>
 
     <script>
-        // ログインチェック
+        // ログインチェック（既存仕様そのまま）
         let currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
         
         // 占い師でログインしてる場合はエラー
@@ -385,43 +384,12 @@
             window.location.href = 'client-login.html';
         }
 
-        // プラン購入（Firebase Functions経由）
-        async function purchasePlan(price, points) {
+        // プラン購入：Zap に任せるので Square のURLにそのまま飛ばすだけ
+        function purchasePlan(price, points, url) {
             if (!confirm(`${points}ポイント（¥${price.toLocaleString()}）を購入しますか？`)) {
                 return;
             }
-
-            const loading = document.getElementById('loading');
-            loading.classList.add('show');
-
-            try {
-                // Firebase Functionsで決済ページURLを取得（URLを修正）
-                const response = await fetch('https://createcheckout-rqf5qzowza-uc.a.run.app', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        userId: currentUser.uid,
-                        amount: price,
-                        points: points
-                    })
-                });
-
-                const data = await response.json();
-
-                if (data.error) {
-                    throw new Error(data.error);
-                }
-
-                // Square決済ページにリダイレクト
-                window.location.href = data.checkoutUrl;
-
-            } catch (error) {
-                console.error('Purchase error:', error);
-                loading.classList.remove('show');
-                alert('購入処理でエラーが発生しました: ' + error.message);
-            }
+            window.location.href = url;
         }
 
         function goBack() {
