@@ -10,12 +10,14 @@
             padding: 0;
             box-sizing: border-box;
         }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans', sans-serif;
             background: linear-gradient(135deg, #FFE5F0 0%, #E5E5FF 100%);
             min-height: 100vh;
             padding-bottom: 40px;
         }
+
         .header {
             background: white;
             padding: 15px 20px;
@@ -27,6 +29,7 @@
             top: 0;
             z-index: 100;
         }
+
         .back-button {
             background: none;
             border: none;
@@ -35,16 +38,19 @@
             color: #666;
             padding: 0;
         }
+
         .header-title {
             font-size: 18px;
             font-weight: bold;
             color: #333;
         }
+
         .container {
             max-width: 1000px;
             margin: 0 auto;
             padding: 30px 20px;
         }
+
         .section-title {
             font-size: 20px;
             font-weight: bold;
@@ -52,25 +58,83 @@
             margin-bottom: 15px;
             text-align: center;
         }
+
+        /* 上の注意書きボックス */
         .points-note {
             max-width: 720px;
-            margin: 0 auto 25px;
+            margin: 0 auto 20px;
             background: rgba(255,255,255,0.95);
             border-radius: 12px;
             padding: 12px 16px;
             font-size: 13px;
             color: #555;
             line-height: 1.6;
+            border-left: 4px solid #E967A5;
         }
         .points-note strong {
             color: #E967A5;
         }
+
+        /* チャージコード入力欄（ピンクの一行） */
+        .charge-box {
+            max-width: 720px;
+            margin: 0 auto 25px;
+            background: rgba(255,255,255,0.95);
+            border-radius: 12px;
+            padding: 14px 16px;
+            border-left: 4px solid #E967A5;
+        }
+
+        .charge-label {
+            font-size: 14px;
+            font-weight: bold;
+            color: #E967A5;
+            margin-bottom: 6px;
+            display: block;
+        }
+
+        .charge-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .charge-input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #E8C5D3;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .charge-btn {
+            padding: 10px 16px;
+            background: linear-gradient(135deg, #E967A5 0%, #B565D8 100%);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        .charge-btn:hover {
+            opacity: 0.9;
+        }
+
+        .charge-note {
+            font-size: 12px;
+            color: #888;
+            margin-top: 6px;
+        }
+
         .plans-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: 20px;
             margin-bottom: 30px;
         }
+
         .plan-card {
             background: white;
             border-radius: 20px;
@@ -78,16 +142,20 @@
             text-align: center;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
             transition: all 0.3s;
-            cursor: pointer;
             position: relative;
+            cursor: pointer;
         }
+
         .plan-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 8px 25px rgba(0,0,0,0.15);
         }
+
         .plan-card.recommended {
             border: 3px solid #FF9800;
+            background: white;
         }
+
         .recommended-badge {
             position: absolute;
             top: -12px;
@@ -100,6 +168,7 @@
             font-size: 12px;
             font-weight: bold;
         }
+
         .bonus-badge {
             position: absolute;
             top: -12px;
@@ -111,6 +180,7 @@
             font-size: 11px;
             font-weight: bold;
         }
+
         .plan-points {
             font-size: 48px;
             font-weight: bold;
@@ -119,23 +189,28 @@
             -webkit-text-fill-color: transparent;
             margin-bottom: 5px;
         }
+
         .plan-points-label {
             font-size: 14px;
             color: #999;
             margin-bottom: 15px;
         }
+
         .bonus-info {
             font-size: 13px;
             color: #E91E63;
             font-weight: bold;
             margin-bottom: 15px;
+            min-height: 20px;
         }
+
         .plan-price {
             font-size: 32px;
             font-weight: bold;
             color: #333;
             margin-bottom: 20px;
         }
+
         .plan-button {
             width: 100%;
             padding: 14px;
@@ -146,7 +221,19 @@
             font-size: 15px;
             font-weight: bold;
             cursor: pointer;
+            transition: all 0.3s;
         }
+
+        .plan-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(233, 103, 165, 0.4);
+        }
+
+        .plan-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
         .info-box {
             background: white;
             border-radius: 15px;
@@ -154,60 +241,162 @@
             margin-top: 30px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
+
         .info-title {
             font-size: 16px;
             font-weight: bold;
             color: #333;
             margin-bottom: 15px;
         }
+
         .info-list {
             list-style: none;
+            padding: 0;
         }
+
         .info-list li {
             padding: 10px 0;
             color: #666;
             font-size: 14px;
             border-bottom: 1px solid #F0F0F0;
         }
+
         .info-list li:last-child {
             border-bottom: none;
         }
+
         .info-list li::before {
             content: "✓ ";
             color: #4CAF50;
             font-weight: bold;
             margin-right: 8px;
         }
+
+        .loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .loading.show {
+            display: flex;
+        }
+
+        .loading-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #E967A5;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
-
     <div class="header">
         <button class="back-button" onclick="goBack()">←</button>
         <div class="header-title">ポイント購入</div>
     </div>
 
     <div class="container">
-
+        <!-- ポイントプラン -->
         <div class="section-title">ポイントを購入</div>
 
-        <!-- ここ変更（注意書き） -->
+        <!-- 上の注意書き（文言を新しいものに変更） -->
         <div class="points-note">
             <p>
-                <strong>※キューピッズに登録しているメールアドレスと同じメールアドレスで決済してください。</strong><br>
-                （メールアドレスが違うとチャージコードが届きません）<br><br>
                 <strong>※購入時のメールアドレスにチャージコードが送信されます。</strong><br>
-                （迷惑メールフォルダに入っている可能性がありますのでご注意ください）
+                （メールは迷惑メールフォルダに入っている可能性がありますのでご注意ください）
             </p>
         </div>
 
-        <!-- プラン一覧（省略：そのまま） -->
-
-        <div class="plans-grid">
-            …（中略：ここは変更なし）
+        <!-- チャージコード入力欄 -->
+        <div class="charge-box">
+            <label for="chargeCodeInput" class="charge-label">✨ チャージコードを入力してください</label>
+            <div class="charge-row">
+                <input
+                    id="chargeCodeInput"
+                    type="text"
+                    placeholder="例：CHARGE-XXXX-XXXX"
+                    class="charge-input"
+                >
+                <button id="applyChargeCodeButton" class="charge-btn">適用</button>
+            </div>
+            <p class="charge-note">※購入後のメールに記載されたチャージコードを入力してください</p>
         </div>
 
-        <!-- ここ変更（ご利用案内の最後の行） -->
+        <div class="plans-grid">
+            <!-- 800円プラン -->
+            <div class="plan-card" onclick="purchasePlan(800, 800, 'https://minamisan.square.site/s/order?cs=true&cst=popular&item=1')">
+                <div class="plan-points">800</div>
+                <div class="plan-points-label">ポイント</div>
+                <div class="bonus-info"></div>
+                <div class="plan-price">¥800</div>
+                <button class="plan-button">購入する</button>
+            </div>
+
+            <!-- 1,600円プラン -->
+            <div class="plan-card" onclick="purchasePlan(1600, 1600, 'https://minamisan.square.site/s/order?cs=true&cst=popular&item=2')">
+                <div class="plan-points">1,600</div>
+                <div class="plan-points-label">ポイント</div>
+                <div class="bonus-info"></div>
+                <div class="plan-price">¥1,600</div>
+                <button class="plan-button">購入する</button>
+            </div>
+
+            <!-- 3,100円プラン（おすすめ） -->
+            <div class="plan-card recommended" onclick="purchasePlan(3100, 3200, 'https://minamisan.square.site/s/order?cs=true&cst=popular&item=3')">
+                <div class="recommended-badge">👑 人気</div>
+                <div class="bonus-badge">100ptお得</div>
+                <div class="plan-points">3,200</div>
+                <div class="plan-points-label">ポイント</div>
+                <div class="bonus-info">100ptボーナス込み</div>
+                <div class="plan-price">¥3,100</div>
+                <button class="plan-button">購入する</button>
+            </div>
+
+            <!-- 6,200円プラン -->
+            <div class="plan-card" onclick="purchasePlan(6200, 6400, 'https://minamisan.square.site/s/order?cs=true&cst=popular&item=4')">
+                <div class="bonus-badge">200ptお得</div>
+                <div class="plan-points">6,400</div>
+                <div class="plan-points-label">ポイント</div>
+                <div class="bonus-info">200ptボーナス込み</div>
+                <div class="plan-price">¥6,200</div>
+                <button class="plan-button">購入する</button>
+            </div>
+
+            <!-- 10,000円プラン -->
+            <div class="plan-card" onclick="purchasePlan(10000, 10400, 'https://minamisan.square.site/s/order?cs=true&cst=popular&item=VUGQOED33ADPXWPPFKOKJUKP')">
+                <div class="bonus-badge">400ptお得</div>
+                <div class="plan-points">10,400</div>
+                <div class="plan-points-label">ポイント</div>
+                <div class="bonus-info">400ptボーナス込み</div>
+                <div class="plan-price">¥10,000</div>
+                <button class="plan-button">購入する</button>
+            </div>
+        </div>
+
+        <!-- 注意事項 -->
         <div class="info-box">
             <div class="info-title">📌 ご利用案内</div>
             <ul class="info-list">
@@ -218,10 +407,59 @@
                 <li>ボーナスポイントは発行されたチャージコードをサイト内で入力する事で付与されます</li>
             </ul>
         </div>
-
     </div>
 
+    <!-- ローディング（今は未使用） -->
+    <div class="loading" id="loading">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <div>決済ページを準備中...</div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getFirestore } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyA52uJ31HzLkbz32lA-3WWSmhM10xYjjCg",
+            authDomain: "cupids-chat.firebaseapp.com",
+            projectId: "cupids-chat",
+            storageBucket: "cupids-chat.firebasestorage.app",
+            messagingSenderId: "44532110483",
+            appId: "1:44532110483:web:d6266e8abba8582b8b6966"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        window.firebaseDB = db;
+        window.firebaseReady = true;
+    </script>
+
     <script>
+        // ログインチェック
+        let currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+
+        if (currentUser && currentUser.type === 'fortune-teller') {
+            alert('占い師アカウントではポイント購入できません。お客様としてログインしてください。');
+            window.location.href = 'client-login.html';
+        }
+
+        if (!currentUser) {
+            alert('ログインが必要です');
+            window.location.href = 'client-login.html';
+        }
+
+        // プラン購入：Square の決済ページに飛ばすだけ
+        function purchasePlan(price, points, url) {
+            if (!confirm(`${points}ポイント（¥${price.toLocaleString()}）を購入しますか？`)) {
+                return;
+            }
+            window.location.href = url;
+        }
+
         function goBack() {
             if (document.referrer && document.referrer.includes(window.location.hostname)) {
                 history.back();
@@ -229,7 +467,18 @@
                 window.location.href = 'mypage.html';
             }
         }
-    </script>
 
+        // チャージコード適用（今は仮でアラートだけ）
+        document.getElementById('applyChargeCodeButton').addEventListener('click', function () {
+            const code = document.getElementById('chargeCodeInput').value.trim();
+            if (!code) {
+                alert('チャージコードを入力してください');
+                return;
+            }
+            alert('チャージコード: ' + code + '（サイト側の処理はこれから実装する部分）');
+        });
+
+        window.purchasePlan = purchasePlan;
+    </script>
 </body>
 </html>
