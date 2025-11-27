@@ -59,11 +59,11 @@
             text-align: center;
         }
 
-        /* 上の注意書きボックス */
+        /* 注意書きボックス（ピンクで1行） */
         .points-note {
             max-width: 720px;
-            margin: 0 auto 20px;
-            background: rgba(255,255,255,0.95);
+            margin: 0 auto 25px;
+            background: rgba(255, 255, 255, 0.95);
             border-radius: 12px;
             padding: 12px 16px;
             font-size: 13px;
@@ -73,59 +73,6 @@
         }
         .points-note strong {
             color: #E967A5;
-        }
-
-        /* チャージコード入力欄（ピンクの一行） */
-        .charge-box {
-            max-width: 720px;
-            margin: 0 auto 25px;
-            background: rgba(255,255,255,0.95);
-            border-radius: 12px;
-            padding: 14px 16px;
-            border-left: 4px solid #E967A5;
-        }
-
-        .charge-label {
-            font-size: 14px;
-            font-weight: bold;
-            color: #E967A5;
-            margin-bottom: 6px;
-            display: block;
-        }
-
-        .charge-row {
-            display: flex;
-            gap: 10px;
-        }
-
-        .charge-input {
-            flex: 1;
-            padding: 10px;
-            border: 1px solid #E8C5D3;
-            border-radius: 8px;
-            font-size: 14px;
-        }
-
-        .charge-btn {
-            padding: 10px 16px;
-            background: linear-gradient(135deg, #E967A5 0%, #B565D8 100%);
-            border: none;
-            border-radius: 8px;
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-            font-size: 14px;
-            white-space: nowrap;
-        }
-
-        .charge-btn:hover {
-            opacity: 0.9;
-        }
-
-        .charge-note {
-            font-size: 12px;
-            color: #888;
-            margin-top: 6px;
         }
 
         .plans-grid {
@@ -272,6 +219,71 @@
             margin-right: 8px;
         }
 
+        /* チャージコード入力エリア */
+        .charge-section {
+            margin-top: 35px;
+        }
+
+        .charge-box {
+            max-width: 720px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 20px 18px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+
+        .charge-title {
+            font-size: 15px;
+            font-weight: bold;
+            margin-bottom: 12px;
+            color: #333;
+        }
+
+        .charge-input-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .charge-input-row input {
+            flex: 1;
+            min-width: 0;
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            font-size: 14px;
+        }
+
+        .charge-input-row button {
+            padding: 10px 18px;
+            border-radius: 999px;
+            border: none;
+            background: linear-gradient(135deg, #E967A5 0%, #B565D8 100%);
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .charge-input-row button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .charge-message {
+            margin-top: 10px;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        .charge-message.error {
+            color: #D32F2F;
+        }
+        .charge-message.success {
+            color: #388E3C;
+        }
+
         .loading {
             position: fixed;
             top: 0;
@@ -310,6 +322,16 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
+        @media (max-width: 480px) {
+            .charge-input-row {
+                flex-direction: column;
+            }
+            .charge-input-row button {
+                width: 100%;
+                text-align: center;
+            }
+        }
     </style>
 </head>
 <body>
@@ -319,10 +341,9 @@
     </div>
 
     <div class="container">
-        <!-- ポイントプラン -->
         <div class="section-title">ポイントを購入</div>
 
-        <!-- 上の注意書き（文言を新しいものに変更） -->
+        <!-- ピンクの注意書き 1行 -->
         <div class="points-note">
             <p>
                 <strong>※購入時のメールアドレスにチャージコードが送信されます。</strong><br>
@@ -330,21 +351,7 @@
             </p>
         </div>
 
-        <!-- チャージコード入力欄 -->
-        <div class="charge-box">
-            <label for="chargeCodeInput" class="charge-label">✨ チャージコードを入力してください</label>
-            <div class="charge-row">
-                <input
-                    id="chargeCodeInput"
-                    type="text"
-                    placeholder="例：CHARGE-XXXX-XXXX"
-                    class="charge-input"
-                >
-                <button id="applyChargeCodeButton" class="charge-btn">適用</button>
-            </div>
-            <p class="charge-note">※購入後に来るメールに記載されたチャージコードを入力してください</p>
-        </div>
-
+        <!-- ポイントプラン -->
         <div class="plans-grid">
             <!-- 800円プラン -->
             <div class="plan-card" onclick="purchasePlan(800, 800, 'https://minamisan.square.site/s/order?cs=true&cst=popular&item=1')">
@@ -396,7 +403,26 @@
             </div>
         </div>
 
-        <!-- 注意事項 -->
+        <!-- チャージコード入力 -->
+        <div class="charge-section">
+            <div class="charge-box">
+                <div class="charge-title">チャージコードをお持ちの方はこちら</div>
+                <div class="charge-input-row">
+                    <input
+                        id="charge-code-input"
+                        type="text"
+                        placeholder="例）CHARGE-XXXXXX-YYYY"
+                        autocomplete="off"
+                    >
+                    <button id="charge-code-button" onclick="applyChargeCode()">
+                        チャージコードを反映する
+                    </button>
+                </div>
+                <div id="charge-code-message" class="charge-message"></div>
+            </div>
+        </div>
+
+        <!-- ご利用案内 -->
         <div class="info-box">
             <div class="info-title">📌 ご利用案内</div>
             <ul class="info-list">
@@ -409,7 +435,7 @@
         </div>
     </div>
 
-    <!-- ローディング（今は未使用） -->
+    <!-- ローディング（今は使わないけど残しておく） -->
     <div class="loading" id="loading">
         <div class="loading-content">
             <div class="spinner"></div>
@@ -417,10 +443,21 @@
         </div>
     </div>
 
-    <!-- Firebase SDK -->
+    <!-- Firebase + チャージコード処理 -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getFirestore } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import {
+            getFirestore,
+            doc,
+            getDoc,
+            collection,
+            query,
+            where,
+            getDocs,
+            updateDoc,
+            increment,
+            serverTimestamp
+        } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
         const firebaseConfig = {
             apiKey: "AIzaSyA52uJ31HzLkbz32lA-3WWSmhM10xYjjCg",
@@ -434,14 +471,122 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        window.firebaseDB = db;
-        window.firebaseReady = true;
+        // チャージコード適用処理
+        async function applyChargeCode() {
+            const input = document.getElementById('charge-code-input');
+            const button = document.getElementById('charge-code-button');
+            const messageEl = document.getElementById('charge-code-message');
+
+            const rawCode = (input.value || '').trim();
+            const code = rawCode.toUpperCase();
+
+            messageEl.textContent = '';
+            messageEl.className = 'charge-message';
+
+            if (!code) {
+                messageEl.textContent = 'チャージコードを入力してください。';
+                messageEl.classList.add('error');
+                return;
+            }
+
+            // ログインユーザー取得
+            const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+            if (!currentUser || !currentUser.uid) {
+                messageEl.textContent = 'お客様としてログインしてからご利用ください。';
+                messageEl.classList.add('error');
+                return;
+            }
+
+            button.disabled = true;
+            button.textContent = '処理中...';
+
+            try {
+                // chargeCodes からコード検索
+                const codesRef = collection(db, 'chargeCodes');
+                const q = query(codesRef, where('chargeCode', '==', code));
+                const snap = await getDocs(q);
+
+                if (snap.empty) {
+                    messageEl.textContent = 'チャージコードが見つかりません。入力内容をご確認ください。';
+                    messageEl.classList.add('error');
+                    return;
+                }
+
+                const codeDoc = snap.docs[0];
+                const codeData = codeDoc.data();
+
+                // used フィールド（文字列 / boolean 両対応）
+                const usedVal = codeData.used;
+                const isUsed =
+                    usedVal === true ||
+                    usedVal === 'true' ||
+                    usedVal === 'True' ||
+                    usedVal === 'TRUE' ||
+                    usedVal === '1';
+
+                if (isUsed) {
+                    messageEl.textContent = 'このチャージコードはすでに使用されています。';
+                    messageEl.classList.add('error');
+                    return;
+                }
+
+                const addPoints = Number(codeData.points || 0);
+                if (!addPoints || addPoints <= 0) {
+                    messageEl.textContent = 'このチャージコードにはポイントが設定されていません。';
+                    messageEl.classList.add('error');
+                    return;
+                }
+
+                // ユーザーポイント取得
+                const userRef = doc(db, 'users', currentUser.uid);
+                const userSnap = await getDoc(userRef);
+
+                if (!userSnap.exists()) {
+                    messageEl.textContent = 'ユーザー情報が見つかりません。ログインし直してお試しください。';
+                    messageEl.classList.add('error');
+                    return;
+                }
+
+                const userData = userSnap.data();
+                const currentPoints = Number(userData.points || 0);
+
+                // users のポイント加算
+                await updateDoc(userRef, {
+                    points: increment(addPoints),
+                    updatedAt: serverTimestamp()
+                });
+
+                // chargeCode を使用済みに
+                await updateDoc(codeDoc.ref, {
+                    used: true,               // ここからは boolean で保存
+                    usedAt: serverTimestamp(),
+                    usedBy: currentUser.uid
+                });
+
+                const newTotal = currentPoints + addPoints;
+
+                messageEl.textContent = `チャージコードを反映しました。${addPoints}ポイントが追加され、合計 ${newTotal} ポイントになりました。`;
+                messageEl.classList.add('success');
+                input.value = '';
+            } catch (err) {
+                console.error(err);
+                messageEl.textContent = 'エラーが発生しました。時間をおいてもう一度お試しください。';
+                messageEl.classList.add('error');
+            } finally {
+                button.disabled = false;
+                button.textContent = 'チャージコードを反映する';
+            }
+        }
+
+        // グローバルに公開（HTML の onclick から呼べるように）
+        window.applyChargeCode = applyChargeCode;
     </script>
 
+    <!-- ログインチェック & 購入ボタン処理 -->
     <script>
-        // ログインチェック
         let currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
 
+        // 占い師でログインしてる場合はエラー
         if (currentUser && currentUser.type === 'fortune-teller') {
             alert('ログインしてください。');
             window.location.href = 'client-login.html';
@@ -452,7 +597,6 @@
             window.location.href = 'client-login.html';
         }
 
-        // プラン購入：Square の決済ページに飛ばすだけ
         function purchasePlan(price, points, url) {
             if (!confirm(`${points}ポイント（¥${price.toLocaleString()}）を購入しますか？`)) {
                 return;
@@ -468,17 +612,8 @@
             }
         }
 
-        // チャージコード適用（今は仮でアラートだけ）
-        document.getElementById('applyChargeCodeButton').addEventListener('click', function () {
-            const code = document.getElementById('chargeCodeInput').value.trim();
-            if (!code) {
-                alert('チャージコードを入力してください');
-                return;
-            }
-            alert('チャージコード: ' + code + '（サイト側の処理はこれから実装する部分）');
-        });
-
         window.purchasePlan = purchasePlan;
+        window.goBack = goBack;
     </script>
 </body>
 </html>
