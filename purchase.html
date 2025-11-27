@@ -342,7 +342,7 @@
                 >
                 <button id="applyChargeCodeButton" class="charge-btn">適用</button>
             </div>
-            <p class="charge-note">※購入後のメールに記載されたチャージコードを入力してください</p>
+            <p class="charge-note">※購入後に来るメールに記載されたチャージコードを入力してください</p>
         </div>
 
         <div class="plans-grid">
@@ -404,7 +404,7 @@
                 <li>ポイントの有効期限は購入日から180日間です</li>
                 <li>購入後のキャンセル・返金はできません</li>
                 <li>決済はSquare（スクエア）の安全な決済システムを使用しています</li>
-                <li>ボーナスポイントは発行されたチャージコードをサイト内で入力する事で付与されます</li>
+                <li>ポイントは発行されたチャージコードをサイト内で入力する事で付与されます</li>
             </ul>
         </div>
     </div>
@@ -443,7 +443,7 @@
         let currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
 
         if (currentUser && currentUser.type === 'fortune-teller') {
-            alert('占い師アカウントではポイント購入できません。お客様としてログインしてください。');
+            alert('ログインしてください。');
             window.location.href = 'client-login.html';
         }
 
