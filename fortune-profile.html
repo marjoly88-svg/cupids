@@ -89,6 +89,7 @@
             margin-bottom: 8px;
         }
 
+        /* ここは残しても邪魔じゃないからCSSはそのまま */
         .profile-rating {
             display: flex;
             align-items: center;
@@ -414,7 +415,7 @@
                 avatarContent = `<img src="${imageUrl}" alt="${name}">`;
             }
 
-            // 評価
+            // 評価（今は画面には出さないけど、将来用に一応計算だけ残しておく）
             const averageRating = ft.averageRating || 5.0;
             const totalReviewCount = ft.totalReviews || reviews.length || 0;
 
@@ -446,19 +447,13 @@
                 fortuneTellerData.regularPrice = regularPrice;
             }
 
-            // プロフィールヘッダー
+            // ⭐と鑑定数を表示から削除した版
             const html = `
                 <div class="profile-header">
                     <div class="profile-avatar">
                         ${avatarContent}
                     </div>
                     <div class="profile-name">${name}</div>
-                    <div class="profile-rating">
-                        <span class="star">⭐</span>
-                        <span>${averageRating.toFixed(1)}</span>
-                        <span>|</span>
-                        <span>鑑定数 ${totalReviewCount}件</span>
-                    </div>
                     <div class="profile-status ${statusClass}">${statusText}</div>
                     <div class="profile-price">1往復 ${regularPrice}pt</div>
                     <button class="purchase-button" onclick="goToPurchase()">
@@ -508,23 +503,19 @@
                 );
                 const convsSnapshot = await window.firebaseGetDocs(q);
 
-                // JavaScriptで最新順にソート
                 const conversations = [];
                 convsSnapshot.forEach(doc => {
                     conversations.push({ id: doc.id, ...doc.data() });
                 });
                 
-                // updatedAtで降順ソート（最新が先頭）
                 conversations.sort((a, b) => {
                     const timeA = a.updatedAt?.toMillis?.() || 0;
                     const timeB = b.updatedAt?.toMillis?.() || 0;
                     return timeB - timeA;
                 });
 
-                // closed状態でない会話を探す
                 for (const conv of conversations) {
                     if (conv.status !== 'closed') {
-                        // 既存の会話がある！
                         const chatButton = document.getElementById('chatButton');
                         if (chatButton) {
                             chatButton.innerHTML = '💬 チャットに戻る';
@@ -579,7 +570,6 @@
             try {
                 console.log('🔍 既存の会話を検索...');
                 
-                // 既存の会話を探す（status != 'closed' のすべての会話）
                 const convsRef = window.firebaseCollection(window.firebaseDB, 'conversations');
                 const q = window.firebaseQuery(
                     convsRef,
@@ -593,20 +583,17 @@
                 let conversationId;
                 let existingConv = null;
 
-                // JavaScriptで最新順にソート
                 const conversations = [];
                 convsSnapshot.forEach(doc => {
                     conversations.push({ id: doc.id, ...doc.data() });
                 });
                 
-                // updatedAtで降順ソート（最新が先頭）
                 conversations.sort((a, b) => {
                     const timeA = a.updatedAt?.toMillis?.() || 0;
                     const timeB = b.updatedAt?.toMillis?.() || 0;
                     return timeB - timeA;
                 });
 
-                // closed状態でない会話を探す
                 for (const conv of conversations) {
                     console.log('  - 会話:', conv.id, 'status:', conv.status);
                     if (conv.status !== 'closed') {
@@ -616,11 +603,9 @@
                 }
 
                 if (existingConv) {
-                    // 既存の会話がある
                     conversationId = existingConv.id;
                     console.log('✅ 既存の会話を使用:', conversationId);
                 } else {
-                    // 新しい会話を作成
                     const { addDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
                     
                     const newConv = {
@@ -638,7 +623,6 @@
                     console.log('新しい会話を作成:', conversationId);
                 }
 
-                // 占い師情報をlocalStorageに保存
                 localStorage.setItem('selectedFortuneTeller', JSON.stringify(fortuneTellerData));
                 localStorage.setItem('selectedFortuneTellerId', fortuneTellerData.id);
                 localStorage.setItem('selectedFortuneTellerName', fortuneTellerData.name);
@@ -646,7 +630,6 @@
                 localStorage.setItem('selectedFortuneTellerRegularPrice', fortuneTellerData.regularPrice);
                 localStorage.setItem('selectedConversationId', conversationId);
 
-                // メールチャット画面へ遷移
                 window.location.href = `mail-chat.html?conversationId=${conversationId}`;
 
             } catch (error) {
