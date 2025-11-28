@@ -352,7 +352,7 @@
             </p>
         </div>
 
-        <!-- ★ ここにチャージコード入力（さっきの位置） -->
+        <!-- チャージコード入力 -->
         <div class="charge-section">
             <div class="charge-box">
                 <div class="charge-title">チャージコードをお持ちの方はこちら</div>
@@ -436,7 +436,7 @@
         </div>
     </div>
 
-    <!-- ローディング（今は使わないけど残しておく） -->
+    <!-- ローディング -->
     <div class="loading" id="loading">
         <div class="loading-content">
             <div class="spinner"></div>
@@ -447,6 +447,7 @@
     <!-- Firebase + チャージコード処理 -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         import {
             getFirestore,
             doc,
@@ -470,7 +471,10 @@
         };
 
         const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);          // ← これで Firebase Auth を有効化
         const db = getFirestore(app);
+
+        console.log('auth currentUser:', auth.currentUser);
 
         // チャージコード適用処理
         async function applyChargeCode() {
@@ -490,7 +494,7 @@
                 return;
             }
 
-            // ログインユーザー取得
+            // ログインユーザー（ローカル保存分）
             const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
             if (!currentUser || !currentUser.uid) {
                 messageEl.textContent = 'ログインしてからご利用ください。';
@@ -516,7 +520,6 @@
                 const codeDoc = snap.docs[0];
                 const codeData = codeDoc.data();
 
-                // used フィールド（文字列 / boolean 両対応）
                 const usedVal = codeData.used;
                 const isUsed =
                     usedVal === true ||
@@ -559,7 +562,7 @@
 
                 // chargeCode を使用済みに
                 await updateDoc(codeDoc.ref, {
-                    used: true,               // ここからは boolean で保存
+                    used: true,
                     usedAt: serverTimestamp(),
                     usedBy: currentUser.uid
                 });
