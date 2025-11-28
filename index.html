@@ -747,12 +747,14 @@
                 const name = ft.name || ft.displayName || '占い師';
                 const initial = name.charAt(0);
                 const imageUrl = ft.photoURL || ft.profileImageUrl || ft.imageUrl;
-                const rating = (ft.averageRating || 5.0).toFixed(1);
-               // ▼ 鑑定数（実数＋管理画面の見た目加算）
-const actualConsultation = ft.consultationCount || 0;
-const baseConsultation = ft.consultationBaseCount || 0;
-const displayConsultation = actualConsultation + baseConsultation;
 
+                // 評価
+                const rating = (ft.averageRating || 5.0).toFixed(1);
+
+                // ▼ 鑑定数（実数＋管理画面の見た目加算）
+                const actualConsultation = ft.consultationCount || 0;
+                const baseConsultation = ft.consultationBaseCount || 0;
+                const displayConsultation = actualConsultation + baseConsultation;
 
                 // ▼ここで単価と1送信価格を計算
                 const pricePerChar = ft.price || ft.pricePerCharacter || 5;
