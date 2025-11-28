@@ -60,11 +60,6 @@
             font-weight: 600;
         }
 
-        .header-subtitle {
-            font-size: 11px;
-            opacity: 0.9;
-        }
-
         .header-right {
             text-align: right;
         }
@@ -295,7 +290,7 @@
         .send-button:disabled {
             background: #E5E7EB;
             color: #9CA3AF;
-            box-shadow: none;
+            box昭shadow: none;
             cursor: not-allowed;
         }
 
@@ -488,83 +483,24 @@
 
         let conversationData = null;
         let fortuneTellerData = null;
-        let currentPrice = 500;  // 現在の料金
-        let isFirstTime = false;  // 初回かどうか
-        let deviceId = localStorage.getItem('deviceId') || generateDeviceId();
+        let currentPrice = 800;  // 1往復あたりの料金（デフォルト800pt）
 
-        // デバイスID生成
-        function generateDeviceId() {
-            const id = 'device_' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
-            localStorage.setItem('deviceId', id);
-            return id;
-        }
+        // 料金表示テキスト更新
+        function updatePriceTexts() {
+            const sendButtonText = document.getElementById('sendButtonText');
+            sendButtonText.textContent = `❤ 送信（${currentPrice}pt消費）`;
 
-        // 初回チェック＆料金計算
-        async function checkInitialOffer(fortuneTellerId) {
-            try {
-                // 1. 占い師の料金情報を取得
-                const ftRef = window.firebaseDoc(window.firebaseDB, 'fortuneTellers', fortuneTellerId);
-                const ftDoc = await window.firebaseGetDoc(ftRef);
-                
-                if (!ftDoc.exists()) {
-                    // データがない場合はデフォルト値
-                    currentPrice = 500;
-                    isFirstTime = true;
-                    updateSendButton();
-                    return;
-                }
-
-                const ftData = ftDoc.data();
-                const initialPrice = ftData.initialPrice || 500;  // 初回料金
-                const regularPrice = ftData.regularPrice || 1000; // 2回目以降の料金
-
-                // 2. 初回フラグをチェック（🔥 修正箇所1: トップレベルコレクションに変更）
-                const initialOfferRef = window.firebaseDoc(
-                    window.firebaseDB, 
-                    'initialOffers', 
-                    `${currentUser.uid}_${fortuneTellerId}`
-                );
-                const initialOfferDoc = await window.firebaseGetDoc(initialOfferRef);
-
-                if (initialOfferDoc.exists()) {
-                    // すでに初回利用済み → 通常料金
-                    currentPrice = regularPrice;
-                    isFirstTime = false;
-                } else {
-                    // 初回利用 → 初回料金
-                    currentPrice = initialPrice;
-                    isFirstTime = true;
-                }
-
-                updateSendButton();
-            } catch (error) {
-                console.error('料金チェックエラー:', error);
-                // エラー時はデフォルト料金
-                currentPrice = 500;
-                isFirstTime = true;
-                updateSendButton();
-            }
-        }
-
-        // 送信ボタンのテキスト更新
-        function updateSendButton() {
-            const buttonText = document.getElementById('sendButtonText');
-            if (isFirstTime) {
-                buttonText.textContent = `❤ 初回${currentPrice}pt`;
-            } else {
-                buttonText.textContent = `❤ ${currentPrice}ptで送信`;
-            }
+            const infoBanner = document.getElementById('infoBanner');
+            infoBanner.innerHTML = `100文字以内で質問できます（1往復 ${currentPrice}pt）`;
         }
 
         // 初期化
         async function init() {
             try {
-                // Firebase初期化チェック
                 if (!window.firebaseDB || !window.firebaseDoc || !window.firebaseGetDoc) {
                     throw new Error('Firebaseが初期化されていません');
                 }
 
-                // conversationIdチェック
                 if (!conversationId) {
                     throw new Error('会話IDが取得できません');
                 }
@@ -582,14 +518,14 @@
                 conversationData = convDoc.data();
 
                 console.log('会話データ取得成功:', conversationData);
-                // 会話ドキュメントをリアルタイム監視（フラグ更新用）
+
+                // 会話ドキュメントをリアルタイム監視
                 window.firebaseOnSnapshot(convRef, (snapshot) => {
                     if (!snapshot.exists()) return;
                     conversationData = snapshot.data();
                     console.log('会話データ更新:', conversationData);
                     updateUIByStatus();
                 });
-
 
                 // 占い師情報を取得
                 const ftRef = window.firebaseDoc(window.firebaseDB, 'fortuneTellers', conversationData.fortuneTellerId);
@@ -598,15 +534,23 @@
                 if (ftDoc.exists()) {
                     fortuneTellerData = ftDoc.data();
                     document.getElementById('fortuneName').textContent = fortuneTellerData.name || '占い師';
+
+                    // regularPrice があればそれを使う、なければ800
+                    if (typeof fortuneTellerData.regularPrice === 'number' && !isNaN(fortuneTellerData.regularPrice)) {
+                        currentPrice = fortuneTellerData.regularPrice;
+                    } else {
+                        currentPrice = 800;
+                    }
+                } else {
+                    currentPrice = 800;
                 }
 
-                // 料金チェック（初回かどうか）
-                await checkInitialOffer(conversationData.fortuneTellerId);
+                updatePriceTexts();
 
-                // ステータスに応じてUI更新
+                // ステータスUI更新
                 updateUIByStatus();
 
-                // メッセージをリアルタイム監視
+                // メッセージ監視開始
                 loadMessages();
                 
                 // ポイント監視開始
@@ -627,6 +571,7 @@
             
             const status = conversationData.status || 'open';
             const statusBadge = document.getElementById('statusBadge');
+            const statusText = document.getElementById('statusText');
             const infoBanner = document.getElementById('infoBanner');
             const completedBanner = document.getElementById('completedBanner');
             const inputArea = document.getElementById('inputArea');
@@ -636,46 +581,27 @@
             const clientHasSent = !!conversationData.clientHasSent;
             const fortuneTellerHasSent = !!conversationData.fortuneTellerHasSent;
 
-            // デフォルトは非表示
             completedBanner.style.display = 'none';
 
-            // 明示的に「クローズ」された会話がある場合だけ完全ロック
-            if (status === 'closed') {
-                statusBadge.textContent = '鑑定終了';
-                statusText.textContent = '';  // ステータステキストをクリア
-                infoBanner.innerHTML = 'この鑑定は終了しています。これ以上メッセージを送ることはできません。';
-                completedBanner.style.display = 'block';
-                inputArea.classList.add('disabled');
-                messageInput.disabled = true;
-                messageInput.placeholder = 'この鑑定は終了しました';
-                sendButton.disabled = true;
-                return;
-            }
+            
 
-            // 送信可能かどうか判定
-            // ・まだ1度も送っていない（false / false）
-            // ・1往復完了後（true / true）→ 次の1往復スタート可能
+            // 送信可能条件
             const canSend =
                 (!clientHasSent && !fortuneTellerHasSent) ||
                 (clientHasSent && fortuneTellerHasSent);
 
             if (canSend) {
                 statusBadge.textContent = '質問受付中';
-                statusText.textContent = '';  // ステータステキストをクリア
-                if (isFirstTime) {
-                    infoBanner.innerHTML = `100文字以内で質問できます（初回 ${currentPrice}円 / 1往復）`;
-                } else {
-                    infoBanner.innerHTML = `100文字以内で質問できます（1往復 ${currentPrice}円）`;
-                }
+                statusText.textContent = '';
+                infoBanner.innerHTML = `100文字以内で質問できます（1往復 ${currentPrice}pt）`;
                 inputArea.classList.remove('disabled');
                 messageInput.disabled = false;
                 messageInput.placeholder = '100文字以内でご相談内容を入力してください';
                 const length = messageInput.value.trim().length;
                 sendButton.disabled = length === 0 || length > 100;
             } else {
-                // お客様送信済みで、占い師の返信待ち
                 statusBadge.textContent = '返信待ち';
-                statusText.textContent = '';  // ステータステキストをクリア
+                statusText.textContent = '';
                 infoBanner.innerHTML = '占い師からの返信をお待ちください（返信後に次の1往復を購入できます）';
                 inputArea.classList.add('disabled');
                 messageInput.disabled = true;
@@ -747,7 +673,6 @@
                     chatArea.appendChild(div);
                 });
 
-                // 一番下までスクロール
                 chatArea.scrollTop = chatArea.scrollHeight;
             });
         }
@@ -810,8 +735,7 @@
                 return;
             }
 
-
-            // ポイントチェック（動的料金）
+            // ポイントチェック（1往復分）
             if (currentUser.points < currentPrice) {
                 alert(`ポイントが不足しています。${currentPrice}ポイント必要です。`);
                 window.location.href = 'purchase.html';
@@ -827,7 +751,7 @@
                 console.log('  senderId:', currentUser.uid);
                 console.log('  text:', text);
 
-                // メッセージを送信
+                // メッセージ保存
                 const docRef = await window.firebaseAddDoc(
                     window.firebaseCollection(window.firebaseDB, 'messages'),
                     {
@@ -841,18 +765,18 @@
                 
                 console.log('✅ メッセージ保存成功! docId:', docRef.id);
 
-                // 会話を更新（お客様送信済みフラグ + status更新）
+                // 会話フラグ更新
                 const convRef = window.firebaseDoc(window.firebaseDB, 'conversations', conversationId);
                 await window.firebaseUpdateDoc(convRef, {
                     clientHasSent: true,
                     fortuneTellerHasSent: false,
-                    status: 'waiting',  // 占い師の返信待ち
+                    status: 'waiting',
                     lastMessage: text.substring(0, 50),
                     lastMessageAt: window.firebaseServerTimestamp(),
                     updatedAt: window.firebaseServerTimestamp()
                 });
 
-                // ポイントを消費（Firestoreで更新）
+                // ポイント消費
                 const userRef = window.firebaseDoc(window.firebaseDB, 'users', currentUser.uid);
                 await window.firebaseUpdateDoc(userRef, {
                     points: window.firebaseIncrement(-currentPrice)
@@ -860,29 +784,12 @@
                 
                 console.log('💰 ポイント消費:', currentPrice, 'pt');
 
-                // 初回利用の場合、フラグを保存
-                if (isFirstTime) {
-                    const initialOfferRef = window.firebaseDoc(
-                        window.firebaseDB,
-                        'initialOffers',
-                        `${currentUser.uid}_${conversationData.fortuneTellerId}`
-                    );
-                    await window.firebaseSetDoc(initialOfferRef, {
-                        used: true,
-                        usedAt: window.firebaseServerTimestamp(),
-                        deviceId: deviceId,
-                        price: currentPrice
-                    });
-                    
-                    // 次回から通常料金
-                    isFirstTime = false;
-                }
-
-                // UIを更新
-                conversationData.clientHasSent = true; conversationData.fortuneTellerHasSent = false;
+                // ローカルのフラグ更新
+                conversationData.clientHasSent = true;
+                conversationData.fortuneTellerHasSent = false;
                 updateUIByStatus();
 
-                // 入力欄をクリア
+                // 入力欄クリア
                 messageInput.value = '';
                 charCount.textContent = '0';
 
@@ -904,7 +811,6 @@
 
         // カルテページへ移動
         function goToKarte() {
-            // conversationIdを保存してからカルテに遷移
             if (conversationId) {
                 localStorage.setItem('selectedConversationId', conversationId);
             }
