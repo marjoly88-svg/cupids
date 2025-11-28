@@ -335,18 +335,7 @@
                 <button class="karte-button" onclick="goToKarte()">📋 カルテ</button>
             </div>
         </header>
-// カルテページへ移動
-    function goToKarte() {
-        if (conversationId) {
-            localStorage.setItem('selectedConversationId', conversationId);
-        }
-        window.location.href = `karte.html?clientId=${currentUser.uid}`;
-    }
 
-    // 🔹 戻るボタン用：必ずTOPへ戻す
-    function goBackToTop() {
-        window.location.href = 'index.html';
-    }
 </script>
         <!-- ステータス -->
         <div class="status-banner">
