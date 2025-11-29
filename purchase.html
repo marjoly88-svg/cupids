@@ -59,7 +59,6 @@
             text-align: center;
         }
 
-        /* 注意書きボックス（ピンクで1行） */
         .points-note {
             max-width: 720px;
             margin: 0 auto 25px;
@@ -219,7 +218,6 @@
             margin-right: 8px;
         }
 
-        /* チャージコード入力エリア */
         .charge-section {
             margin-top: 5px;
             margin-bottom: 25px;
@@ -344,7 +342,6 @@
     <div class="container">
         <div class="section-title">ポイントを購入</div>
 
-        <!-- ピンクの注意書き 1行 -->
         <div class="points-note">
             <p>
                 <strong>※購入時のメールアドレスにチャージコードが送信されます。</strong><br>
@@ -373,7 +370,6 @@
 
         <!-- ポイントプラン -->
         <div class="plans-grid">
-            <!-- 800円プラン -->
             <div class="plan-card" onclick="purchasePlan(800, 800, 'https://minamisan.square.site/s/order?cs=true&cst=popular&item=1')">
                 <div class="plan-points">800</div>
                 <div class="plan-points-label">ポイント</div>
@@ -382,7 +378,6 @@
                 <button class="plan-button">購入する</button>
             </div>
 
-            <!-- 1,600円プラン -->
             <div class="plan-card" onclick="purchasePlan(1600, 1600, 'https://minamisan.square.site/s/order?cs=true&cst=popular&item=2')">
                 <div class="plan-points">1,600</div>
                 <div class="plan-points-label">ポイント</div>
@@ -391,7 +386,6 @@
                 <button class="plan-button">購入する</button>
             </div>
 
-            <!-- 3,100円プラン（おすすめ） -->
             <div class="plan-card recommended" onclick="purchasePlan(3100, 3200, 'https://minamisan.square.site/s/order?cs=true&cst=popular&item=3')">
                 <div class="recommended-badge">👑 人気</div>
                 <div class="bonus-badge">100ptお得</div>
@@ -402,7 +396,6 @@
                 <button class="plan-button">購入する</button>
             </div>
 
-            <!-- 6,200円プラン -->
             <div class="plan-card" onclick="purchasePlan(6200, 6400, 'https://minamisan.square.site/s/order?cs=true&cst=popular&item=4')">
                 <div class="bonus-badge">200ptお得</div>
                 <div class="plan-points">6,400</div>
@@ -412,7 +405,6 @@
                 <button class="plan-button">購入する</button>
             </div>
 
-            <!-- 10,000円プラン -->
             <div class="plan-card" onclick="purchasePlan(10000, 10400, 'https://minamisan.square.site/s/order?cs=true&cst=popular&item=VUGQOED33ADPXWPPFKOKJUKP')">
                 <div class="bonus-badge">400ptお得</div>
                 <div class="plan-points">10,400</div>
@@ -423,7 +415,6 @@
             </div>
         </div>
 
-        <!-- ご利用案内 -->
         <div class="info-box">
             <div class="info-title">📌 ご利用案内</div>
             <ul class="info-list">
@@ -436,7 +427,6 @@
         </div>
     </div>
 
-    <!-- ローディング -->
     <div class="loading" id="loading">
         <div class="loading-content">
             <div class="spinner"></div>
@@ -471,7 +461,7 @@
         };
 
         const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);          // ← これで Firebase Auth を有効化
+        const auth = getAuth(app);
         const db = getFirestore(app);
 
         console.log('auth currentUser:', auth.currentUser);
@@ -554,17 +544,17 @@
                 const userData = userSnap.data();
                 const currentPoints = Number(userData.points || 0);
 
-                // users のポイント加算
-                await updateDoc(userRef, {
-                    points: increment(addPoints),
-                    updatedAt: serverTimestamp()
-                });
-
-                // chargeCode を使用済みに
+                // ① 先にチャージコードを使用済みにする
                 await updateDoc(codeDoc.ref, {
                     used: true,
                     usedAt: serverTimestamp(),
                     usedBy: currentUser.uid
+                });
+
+                // ② そのあとでユーザーのポイントを加算
+                await updateDoc(userRef, {
+                    points: increment(addPoints),
+                    updatedAt: serverTimestamp()
                 });
 
                 const newTotal = currentPoints + addPoints;
