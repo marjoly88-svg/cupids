@@ -24,213 +24,232 @@
         .login-container {
             background: white;
             border-radius: 20px;
-            padding: 40px;
-            width: 100%;
+            padding: 0 30px 40px 30px;
             max-width: 400px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            width: 100%;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            overflow: hidden;
         }
 
-        h1 {
+        .logo-container {
             text-align: center;
+            margin: 0 -30px 20px -30px;
+            padding: 0;
+        }
+
+        .logo {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .page-title {
+            font-size: 24px;
+            font-weight: bold;
             color: #333;
-            margin-bottom: 10px;
-            font-size: 28px;
+            text-align: center;
+            margin-bottom: 8px;
         }
 
-        .subtitle {
-            text-align: center;
+        .page-subtitle {
+            font-size: 13px;
             color: #999;
-            margin-bottom: 30px;
-            font-size: 14px;
+            text-align: center;
+            margin-bottom: 24px;
         }
 
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 18px;
         }
 
-        label {
+        .form-label {
             display: block;
-            margin-bottom: 8px;
-            color: #666;
             font-size: 14px;
             font-weight: bold;
+            color: #333;
+            margin-bottom: 8px;
         }
 
-        input {
+        .form-input {
             width: 100%;
-            padding: 12px;
-            border: 2px solid #e1e1e1;
+            padding: 12px 16px;
+            border: 1px solid #E0E0E0;
             border-radius: 8px;
-            font-size: 16px;
-            transition: border 0.3s;
+            font-size: 14px;
+            transition: border 0.2s;
         }
 
-        input:focus {
+        .form-input:focus {
             outline: none;
-            border-color: #667eea;
+            border-color: #E967A5;
         }
 
-        button {
+        .btn-primary {
             width: 100%;
             padding: 14px;
             background: linear-gradient(135deg, #E967A5 0%, #B565D8 100%);
             color: white;
             border: none;
-            border-radius: 8px;
+            border-radius: 25px;
             font-size: 16px;
             font-weight: bold;
             cursor: pointer;
-            transition: transform 0.2s;
+            transition: all 0.2s;
+            margin-top: 10px;
         }
 
-        button:hover {
+        .btn-primary:hover {
             transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(233, 103, 165, 0.4);
+        }
+
+        .btn-primary:disabled {
+            background: #CCC;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .error-message {
+            background: #FEE2E2;
+            border: 1px solid #EF4444;
+            color: #991B1B;
+            padding: 10px 12px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            font-size: 13px;
+            display: none;
         }
 
         .back-link {
             text-align: center;
-            margin-top: 20px;
+            margin-top: 18px;
         }
 
         .back-link a {
-            color: #667eea;
+            color: #999;
             text-decoration: none;
-            font-size: 14px;
+            font-size: 13px;
         }
 
         .back-link a:hover {
-            text-decoration: underline;
-        }
-
-        .error {
-            background: #ffebee;
-            color: #c62828;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            display: none;
-        }
-
-        .lock-icon {
-            text-align: center;
-            font-size: 48px;
-            margin-bottom: 20px;
+            color: #666;
         }
     </style>
 </head>
 <body>
     <div class="login-container">
-        <div class="lock-icon">🔒</div>
-        <h1>管理者ログイン</h1>
-        <p class="subtitle">管理画面にアクセスするには認証が必要です</p>
-        
-        <div class="error" id="errorMsg"></div>
-        
+        <div class="logo-container">
+            <img src="https://i.postimg.cc/65MfsbQQ/kyupizzu.png" alt="キューピッズ" class="logo">
+        </div>
+
+        <h1 class="page-title">管理者ログイン</h1>
+        <p class="page-subtitle">このページはサイト管理者専用です</p>
+
+        <div class="error-message" id="errorMessage"></div>
+
         <form id="adminLoginForm">
             <div class="form-group">
-                <label for="adminId">管理者ID</label>
-                <input type="text" id="adminId" required>
+                <label class="form-label">メールアドレス</label>
+                <input
+                    type="email"
+                    class="form-input"
+                    id="email"
+                    autocomplete="username"
+                    required
+                >
             </div>
-            
+
             <div class="form-group">
-                <label for="adminPassword">パスワード</label>
-                <input type="password" id="adminPassword" required>
+                <label class="form-label">パスワード</label>
+                <input
+                    type="password"
+                    class="form-input"
+                    id="password"
+                    autocomplete="current-password"
+                    required
+                >
             </div>
-            
-            <button type="submit">ログイン</button>
+
+            <button type="submit" class="btn-primary" id="loginButton">
+                ログイン
+            </button>
         </form>
-        
+
         <div class="back-link">
-            <a href="index.html">← TOPへ戻る</a>
+            <a href="index.html">← TOPに戻る</a>
         </div>
     </div>
 
-    <script>
-        // 管理者認証情報（本番環境では環境変数等で管理）
-        const ADMIN_CREDENTIALS = {
-            id: 'cupids_admin',
-            password: 'memetan1031'
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, signInWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyA52uJ31HzLkbz32lA-3WWSmhM10xYjjCg",
+            authDomain: "cupids-chat.firebaseapp.com",
+            projectId: "cupids-chat",
+            storageBucket: "cupids-chat.firebasestorage.app",
+            messagingSenderId: "44532110483",
+            appId: "1:44532110483:web:d6266e8abba8582b8b6966"
         };
 
-        // Firebase用の管理者アカウント（初回のみ作成が必要）
-        const ADMIN_FIREBASE_ACCOUNT = {
-            email: 'admin@cupids-chat.com',
-            password: 'memetan1031admin'
-        };
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
 
-        document.getElementById('adminLoginForm').addEventListener('submit', async function(e) {
+        const ADMIN_EMAIL = 'rinpara88@gmail.com';
+
+        const form = document.getElementById('adminLoginForm');
+        const loginButton = document.getElementById('loginButton');
+        const errorBox = document.getElementById('errorMessage');
+
+        form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
-            const adminId = document.getElementById('adminId').value;
-            const adminPassword = document.getElementById('adminPassword').value;
-            const errorMsg = document.getElementById('errorMsg');
-            
-            // 認証チェック
-            if (adminId === ADMIN_CREDENTIALS.id && adminPassword === ADMIN_CREDENTIALS.password) {
-                try {
-                    // Firebase SDKを動的にインポート
-                    const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js');
-                    const { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js');
-                    
-                    const firebaseConfig = {
-                        apiKey: "AIzaSyA52uJ31HzLkbz32lA-3WWSmhM10xYjjCg",
-                        authDomain: "cupids-chat.firebaseapp.com",
-                        projectId: "cupids-chat",
-                        storageBucket: "cupids-chat.firebasestorage.app",
-                        messagingSenderId: "44532110483",
-                        appId: "1:44532110483:web:d6266e8abba8582b8b6966"
-                    };
-                    
-                    const app = initializeApp(firebaseConfig);
-                    const auth = getAuth(app);
-                    
-                    try {
-                        // Firebaseにログイン試行
-                        await signInWithEmailAndPassword(auth, ADMIN_FIREBASE_ACCOUNT.email, ADMIN_FIREBASE_ACCOUNT.password);
-                        console.log('Firebase認証成功');
-                    } catch (firebaseError) {
-                        if (firebaseError.code === 'auth/user-not-found') {
-                            // 初回：管理者アカウントを作成
-                            try {
-                                await createUserWithEmailAndPassword(auth, ADMIN_FIREBASE_ACCOUNT.email, ADMIN_FIREBASE_ACCOUNT.password);
-                                console.log('管理者アカウントを作成しました');
-                            } catch (createError) {
-                                console.error('アカウント作成エラー:', createError);
-                            }
-                        }
-                    }
-                    
-                    // 認証成功
-                    localStorage.setItem('currentUser', JSON.stringify({
-                        uid: 'admin-001',
-                        email: ADMIN_FIREBASE_ACCOUNT.email,
-                        type: 'admin',
-                        name: '管理者',
-                        authenticated: true
-                    }));
-                    
-                    // 管理画面へ遷移
-                    window.location.href = 'admin.html';
-                    
-                } catch (error) {
-                    console.error('Firebase認証エラー:', error);
-                    // Firebaseエラーでも管理画面へ（後方互換性）
-                    localStorage.setItem('currentUser', JSON.stringify({
-                        uid: 'admin-001',
-                        email: 'admin@cupids.com',
-                        type: 'admin',
-                        name: '管理者'
-                    }));
-                    window.location.href = 'admin.html';
+            errorBox.style.display = 'none';
+            errorBox.textContent = '';
+
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+
+            loginButton.disabled = true;
+            loginButton.textContent = 'ログイン中...';
+
+            try {
+                const cred = await signInWithEmailAndPassword(auth, email, password);
+                const user = cred.user;
+
+                // 管理者メールかチェック
+                if (user.email !== ADMIN_EMAIL) {
+                    await signOut(auth);
+                    throw new Error('このメールアドレスには管理者権限がありません。');
                 }
-            } else {
-                // 認証失敗
-                errorMsg.textContent = 'IDまたはパスワードが正しくありません';
-                errorMsg.style.display = 'block';
-                
-                setTimeout(() => {
-                    errorMsg.style.display = 'none';
-                }, 3000);
+
+                // localStorage に管理者として保存
+                localStorage.setItem('currentUser', JSON.stringify({
+                    uid: user.uid,
+                    email: user.email,
+                    type: 'admin',
+                    name: '管理者'
+                }));
+
+                // 管理画面へ
+                window.location.href = 'admin.html';
+
+            } catch (error) {
+                console.error('管理者ログインエラー:', error);
+                let msg = 'ログインに失敗しました。メールアドレスとパスワードを確認してください。';
+                if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                    msg = 'メールアドレスまたはパスワードが正しくありません。';
+                } else if (error.message.includes('管理者権限')) {
+                    msg = error.message;
+                }
+
+                errorBox.textContent = msg;
+                errorBox.style.display = 'block';
+            } finally {
+                loginButton.disabled = false;
+                loginButton.textContent = 'ログイン';
             }
         });
     </script>
