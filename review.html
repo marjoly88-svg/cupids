@@ -338,12 +338,15 @@
             }
 
             const comment = document.getElementById('commentInput').value.trim();
-            const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
-
-            if (!currentUser) {
+            
+            // Firebase Authから実際のユーザーを取得
+            const authUser = firebase.auth().currentUser;
+            if (!authUser) {
                 alert('ログインしてください');
                 return;
             }
+            
+            const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
 
             try {
                 this.disabled = true;
@@ -354,8 +357,8 @@
                     window.firebaseCollection(window.firebaseDB, 'reviews'),
                     {
                         fortuneTellerId: fortuneTellerId,
-                        clientId: currentUser.uid,
-                        clientName: currentUser.name || '匿名',
+                        clientId: authUser.uid,
+                        clientName: currentUser?.name || authUser.displayName || '匿名',
                         rating: selectedRating,
                         comment: comment,
                         conversationId: conversationId,
