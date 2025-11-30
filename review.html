@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>レビューを書く - キューピッズ</title>
     <style>
         * {
@@ -187,7 +187,7 @@
         <div class="title">⭐ レビューを書く</div>
         
         <div class="ft-info">
-            <div class="ft-name" id="ftName">占い師</div>
+            <div class="ft-name" id="ftName">占い師のみなみさん</div>
         </div>
 
         <div class="rating-section">
@@ -233,6 +233,7 @@
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { getFirestore, collection, addDoc, doc, updateDoc, increment, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { getAuth } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 
         const firebaseConfig = {
             apiKey: "AIzaSyA52uJ31HzLkbz32lA-3WWSmhM10xYjjCg",
@@ -245,8 +246,10 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+        const auth = getAuth(app);
 
         window.firebaseDB = db;
+        window.firebaseAuth = auth;
         window.firebaseCollection = collection;
         window.firebaseAddDoc = addDoc;
         window.firebaseDoc = doc;
@@ -324,8 +327,8 @@
 
             const comment = document.getElementById('commentInput').value.trim();
             
-            // Firebase Authから実際のユーザーを取得
-            const authUser = firebase.auth().currentUser;
+            // Firebase Auth v9 の書き方
+            const authUser = window.firebaseAuth.currentUser;
             if (!authUser) {
                 alert('ログインしてください');
                 return;
@@ -353,7 +356,7 @@
                 );
 
                 // 占い師のレビュー数と平均評価を更新
-                const ftRef = window.firebaseDoc(window.firebaseDB, 'fortune-tellers', fortuneTellerId);
+                const ftRef = window.firebaseDoc(window.firebaseDB, 'fortuneTellers', fortuneTellerId);
                 await window.firebaseUpdateDoc(ftRef, {
                     reviewCount: window.firebaseIncrement(1),
                     totalRating: window.firebaseIncrement(selectedRating)
@@ -368,7 +371,7 @@
 
             } catch (error) {
                 console.error('レビュー送信エラー:', error);
-                alert('レビューの送信に失敗しました');
+                alert('レビューの送信に失敗しました: ' + error.message);
                 this.disabled = false;
                 this.textContent = '💌 レビューを送信';
             }
