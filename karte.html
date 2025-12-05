@@ -924,26 +924,30 @@
             }
         }
 
-        function goBack() {
-            // お客様と占い師で戻る先を変える
-            if (isClient) {
-                // お客様の場合はチャット画面に戻る
-                const conversationId = localStorage.getItem('selectedConversationId');
-                if (conversationId) {
-                    window.location.href = `mail-chat.html?conversationId=${conversationId}`;
-                } else {
-                    window.location.href = 'index.html';
-                }
-            } else {
-                // 占い師の場合はチャット画面に戻る
-                const conversationId = localStorage.getItem('selectedConversationId');
-                if (conversationId) {
-                    window.location.href = `fortune-chat.html?conversationId=${conversationId}`;
-                } else {
-                    window.location.href = 'fortune-lobby.html';
-                }
-            }
+       function goBack() {
+    // URLパラメータからconversationIdを取得
+    const urlParams = new URLSearchParams(window.location.search);
+    const conversationIdFromUrl = urlParams.get('conversationId');
+    
+    // お客様と占い師で戻る先を変える
+    if (isClient) {
+        // お客様の場合はチャット画面に戻る
+        const conversationId = conversationIdFromUrl || localStorage.getItem('selectedConversationId');
+        if (conversationId) {
+            window.location.href = `mail-chat.html?conversationId=${conversationId}`;
+        } else {
+            window.location.href = 'index.html';
         }
+    } else {
+        // 占い師の場合はチャット画面に戻る
+        const conversationId = conversationIdFromUrl || localStorage.getItem('selectedConversationId');
+        if (conversationId) {
+            window.location.href = `fortune-chat.html?conversationId=${conversationId}`;
+        } else {
+            window.location.href = 'fortune-lobby.html';
+        }
+    }
+}
 
         // Firebase初期化を待ってから実行
         function initializePage() {
